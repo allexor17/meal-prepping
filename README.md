@@ -4,8 +4,10 @@ App personale di meal prep (PWA). File statici, nessuna build: Netlify pubblica 
 
 - `index.html` · struttura delle schermate
 - `style.css` · stile (Libre Baskerville per i titoli, Lato per il testo)
-- `data.js` · ricettario iniziale, scorte, dolci, aggiunte proteiche
+- `data.js` · ricettario (pasti, cereali, sughi, fermentati, dolci), frutta di stagione, colazioni e spuntini, obiettivi nutrizionali, mappa delle piante
 - `prices.js` · prezzi Coop stimati
 - `app.js` · generatore settimanale, spesa, piano, ricette, scorte, dolci
 - `extras.js` · guida frigo e illustrazioni
 - `sw.js` · funzionamento offline (cambiare VERSION a ogni aggiornamento)
+
+Obiettivi di default: 1800 kcal e 80–100 g di proteine al giorno, 30 piante a settimana, un fermentato al giorno, due cereali di famiglie diverse, pesce azzurro almeno una volta.
