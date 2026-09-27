@@ -132,6 +132,15 @@ const PRICES={
  "nespole":{size:1000,unit:"g",min:3.00,max:5.00,bulk:true},
  "melone":{size:1000,unit:"g",min:1.50,max:2.50,bulk:true},
  "anguria":{size:1000,unit:"g",min:0.80,max:1.50,bulk:true},
- "mirtilli":{size:125,unit:"g",min:2.00,max:3.00}
+ "mirtilli":{size:125,unit:"g",min:2.00,max:3.00},
+ // Verdure per le ricette di stagione
+ "cavolini di bruxelles":{size:1000,unit:"g",min:3.50,max:5.00,bulk:true},
+ "porri":{size:1,unit:"pz",min:0.60,max:1.00,bulk:true},
+ "carciofi":{size:1,unit:"pz",min:0.60,max:1.00,bulk:true},
+ "valeriana":{size:125,unit:"g",min:1.20,max:1.90},
+ "ravanelli":{size:1,unit:"pz",min:0.90,max:1.40},
+ "pomodori":{size:1000,unit:"g",min:1.80,max:3.20,bulk:true},
+ "barbabietole precotte":{size:500,unit:"g",min:1.20,max:1.90},
+ "funghi champignon":{size:250,unit:"g",min:1.50,max:2.50}
 };
 const PRICE_SOURCE="Stime da prezzi online Coop (Unicoop Firenze), settembre 2026. Variano tra cooperative e punti vendita.";

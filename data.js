@@ -7,7 +7,7 @@
  oily: pesce azzurro (omega-3 EPA/DHA) · spicy: piccante (mai proposto)
  store (dolci): giorni in dispensa / giorni in frigo / mesi in freezer
  sugar: zuccheri aggiunti per pezzo (g) */
-const LIB_VERSION=4;
+const LIB_VERSION=5;
 const REPARTI=["Ortofrutta","Pesce","Frigo","Surgelati","Dispensa","Panetteria","Basi"];
 function M(r){if(Array.isArray(r))return r;if(r==="all")return[1,2,3,4,5,6,7,8,9,10,11,12];const[a,b]=r.split("-").map(Number);const o=[];let m=a;for(;;){o.push(m);if(m===b)break;m=m%12+1}return o}
 function I(list){return list.map(s=>{const[q,n,r]=s.split("|");return{q,n,r}})}
@@ -95,6 +95,22 @@ const LIB=[
  steps:["Togli la costa centrale e taglia le foglie a striscioline.","Aglio nell'olio, poi il cavolo e mezzo bicchiere d'acqua: 12–15 minuti col coperchio.","Scorza di limone alla fine."],
  cons:"Frigo 4 giorni, freezer 3 mesi.",par:"Un fuoco, cuoce da solo.",think:"Tra le verdure è una delle fonti di calcio meglio assorbite, al contrario degli spinaci.",
  draw:{vessel:"plate",pieces:[{t:"leafy",c:"#243F22",n:24,s:.16}]}},
+
+{id:"verd_stagione",name:"Verdure al forno di stagione",role:"side",seasonal:"forno",portions:4,protein:4,kcal:150,prepMin:15,cookMin:40,equip:"forno",temp:200,fridgeDays:4,freezer:false,months:M("all"),
+ ing:I(["2 cucchiai|olio EVO|Basi","2 rametti|rosmarino|Basi"]),
+ steps:["Taglia le verdure della settimana a pezzi simili (2–3 cm): quelle dure (zucca, carote, cavolfiore) un po' più piccole di quelle tenere (zucchine, peperoni).","Condisci in una ciotola con olio, rosmarino, sale e paprika dolce.","Due teglie, un solo strato. 200 °C per 30–40 minuti, scambiando le teglie a metà."],
+ cons:"Frigo 4 giorni.",par:"Prima cosa in forno.",think:"Perché tagliare più piccole le verdure dure? Il calore deve arrivare al centro: meno spessore, cottura più breve, così finiscono tutte insieme.",
+ draw:{vessel:"tray",pieces:[{t:"cube",c:"#E48A2A",n:10,s:.15},{t:"floret",c:"#3F7A35",n:6,s:.14},{t:"round",c:"#4F8A3A",inner:"#D9E6A8",n:8,s:.1},{t:"cube",c:"#D8402B",n:6,s:.13},{t:"ring",c:"#8E3B6A",n:6,s:.12}]}},
+{id:"insalata_stagione",name:"Insalata cruda di stagione",role:"side",seasonal:"crudo",portions:4,protein:2,kcal:45,prepMin:15,cookMin:0,equip:"nessuno",fridgeDays:3,freezer:false,months:M("all"),
+ ing:I(["1|limone|Ortofrutta"]),
+ steps:["Lava e asciuga benissimo le verdure della settimana.","Le foglie intere, le altre a julienne o grattugiate: tagliate sottili durano meno, quindi tienile in contenitori separati.","Condisci solo quando mangi, con olio, limone e sale."],
+ cons:"Frigo 3 giorni, in contenitori separati e asciutti.",par:"Si fa a mano mentre tutto cuoce.",think:"Ogni verdura diversa è una pianta in più nel conto dei 30, allo stesso lavoro.",
+ draw:{vessel:"plate",pieces:[{t:"leafy",c:"#7DB257",n:16,s:.15},{t:"needle",c:"#E8872E",n:16,s:.1},{t:"leafy",c:"#8E2A4A",n:8,s:.12}]}},
+{id:"frit_stagione",name:"Frittata al forno di stagione",role:"main",seasonal:"frittata",portions:3,protein:25,kcal:310,prepMin:12,cookMin:25,equip:"forno",temp:180,fridgeDays:4,freezer:false,months:M("all"),
+ ing:I(["8|uova|Frigo","100 g|feta|Frigo"]),
+ steps:["Cuoci le verdure della settimana: quelle tenere (zucchine, spinaci, funghi) crude a fette sottili, quelle dure (broccoli, carciofi, asparagi, porri) sbollentate 3–4 minuti.","Sbatti le uova con sale, pepe e la feta sbriciolata.","Teglia da 22 cm con carta forno unta: verdure, poi le uova. 180 °C per 25 minuti, finché il centro non trema."],
+ cons:"Frigo 4 giorni. In freezer diventa acquosa.",par:"Sbollenta le verdure dure nell'acqua che bolle per il cereale.",think:"",
+ draw:{vessel:"pan",base:"#F0C94A",base2:"#E4B537",slices:4,pieces:[{t:"round",c:"#4F8A3A",inner:"#D9E6A8",n:8,s:.09},{t:"floret",c:"#3F7A35",n:5,s:.1},{t:"cube",c:"#F7F4EA",n:6,s:.06}]}},
 
 /* ---------- PRINCIPALI ---------- */
 {id:"merluzzo",name:"Merluzzo gratinato al limone",role:"main",portions:2,protein:34,kcal:290,prepMin:10,cookMin:15,equip:"forno",temp:200,fridgeDays:2,freezer:false,months:M("all"),
@@ -396,6 +412,41 @@ const FRUITS=[
  {id:"anguria",label:"250 g di anguria",n:"anguria",q:"250 g",kcal:75,months:M("7-8"),pair:"con feta e menta"},
  {id:"mirtilli",label:"125 g di mirtilli",n:"mirtilli",q:"125 g",kcal:70,months:M("6-9"),pair:"nello yogurt o nel porridge"}
 ];
+
+/* ============ VERDURE DI STAGIONE (per le ricette che si adattano) ============
+ forno / crudo / frittata = quantità per la ricetta (4 porzioni di contorno, 3 di frittata) */
+const SEASONAL_VEG=[
+ {n:"zucca",months:M("9-1"),forno:"600 g"},
+ {n:"cavolfiore",months:M("10-3"),forno:"½"},
+ {n:"broccoli",months:M("10-3"),forno:"500 g",frittata:"300 g"},
+ {n:"cavolini di Bruxelles",months:M("11-2"),forno:"400 g"},
+ {n:"finocchi",months:M("10-4"),forno:"2",crudo:"1"},
+ {n:"porri",months:M("10-3"),forno:"2",frittata:"1"},
+ {n:"carciofi",months:M("11-4"),forno:"4",frittata:"3"},
+ {n:"radicchio",months:M("10-3"),forno:"1",crudo:"1"},
+ {n:"cavolo cappuccio",months:M("10-4"),crudo:"¼"},
+ {n:"valeriana",months:M("10-4"),crudo:"125 g"},
+ {n:"spinaci freschi",months:M("10-5"),frittata:"300 g"},
+ {n:"asparagi",months:M("4-5"),forno:"400 g",frittata:"400 g"},
+ {n:"ravanelli",months:M("3-6"),crudo:"1 mazzo"},
+ {n:"cipollotti",months:M("3-6"),frittata:"1 mazzo",crudo:"1 mazzo"},
+ {n:"rucola",months:[4,5,6,9,10],crudo:"125 g"},
+ {n:"lattuga",months:M("4-10"),crudo:"1 cespo"},
+ {n:"zucchine",months:M("5-9"),forno:"2",frittata:"2",crudo:"1"},
+ {n:"peperoni",months:M("6-9"),forno:"2",crudo:"1"},
+ {n:"melanzana",months:M("6-9"),forno:"1"},
+ {n:"pomodori",months:M("6-9"),crudo:"300 g"},
+ {n:"cetrioli",months:M("6-9"),crudo:"1"},
+ {n:"barbabietole precotte",months:M("5-11"),crudo:"250 g"},
+ {n:"carote",months:M("all"),forno:"3",crudo:"2"},
+ {n:"cipolla rossa",months:M("all"),forno:"1"},
+ {n:"funghi champignon",months:M("all"),forno:"300 g",frittata:"250 g"}
+];
+/* Stagionalità di frutta e verdura fresche, per il controllo delle ricette tue */
+const PRODUCE_SEASON={};
+SEASONAL_VEG.forEach(v=>{if(v.months.length<12)PRODUCE_SEASON[v.n]=v.months});
+FRUITS.forEach(f=>{PRODUCE_SEASON[f.n]=f.months});
+Object.assign(PRODUCE_SEASON,{"pomodori maturi":M("7-9"),"pomodorini":M("6-9"),"cavolo cinese":M("10-3"),"cavolo nero":M("11-3"),"verza":M("10-3"),"fagiolini":M("6-9"),"fave":M("4-6"),"piselli freschi":M("4-6"),"spinaci":M("10-5"),"bietole":M("10-5"),"cime di rapa":M("11-3"),"sedano rapa":M("10-3"),"topinambur":M("11-3"),"castagne":M("10-12"),"cachi":M("10-12"),"melone":M("6-8"),"anguria":M("7-8"),"fragole":M("4-6"),"ciliegie":M("5-7"),"albicocche":M("6-7"),"pesche":M("6-9"),"mandarini":M("11-2"),"arance":M("11-4"),"kiwi":M("11-4"),"pompelmo":M("12-4"),"limone":M("all")});
 
 /* ============ COLAZIONI E SPUNTINI ============
  kcal e proteine senza la frutta (si aggiunge a parte). ferm = fermentato vivo. needs = serve un dolce fatto in casa */

@@ -57,6 +57,20 @@ const weekMonth=()=>addDays(S.weekStart,0).getMonth()+1;
 const inSeason=(r,m)=>!r.months||!r.months.length||r.months.includes(m);
 function monthsLabel(ms){if(!ms||ms.length>=12)return "tutto l'anno";const set=new Set(ms);const runs=[];ms.slice().sort((a,b)=>a-b).forEach(m=>{if(!set.has(m===1?12:m-1)){let e=m;while(set.has(e%12+1)&&e%12+1!==m)e=e%12+1;runs.push(MONTHS[m-1]+(e!==m?"–"+MONTHS[e-1]:""))}});return runs.join(", ")||"tutto l'anno"}
 
+
+/* ============ STAGIONE: RICETTE CHE SI ADATTANO E CONTROLLO ============ */
+function hashStr(x){let h=2166136261;for(const c of String(x)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
+const SEASON_NEED={forno:4,crudo:3,frittata:2};
+function seasonalPick(r,month=weekMonth(),key=S.weekStart){
+  const pool=SEASONAL_VEG.filter(v=>v.months.includes(month)&&v[r.seasonal]);const rnd=mulberry(hashStr(key+"|"+r.id));
+  const strict=pool.filter(v=>v.months.length<12),always=pool.filter(v=>v.months.length===12);
+  return[...shuffle(strict,rnd),...shuffle(always,rnd)].slice(0,SEASON_NEED[r.seasonal]||3)}
+function ingOf(r,month,key){if(!r||!r.seasonal)return r?r.ing:[];return[...seasonalPick(r,month,key).map(v=>({q:v[r.seasonal],n:v.n,r:"Ortofrutta"})),...r.ing]}
+function nameOf(r){if(!r)return"";if(!r.seasonal)return r.name;return r.name+": "+seasonalPick(r).map(v=>v.n).join(", ")}
+function produceSeason(name){const n=name.trim().toLowerCase();if(PRODUCE_SEASON[n])return PRODUCE_SEASON[n];const k=Object.keys(PRODUCE_SEASON).find(k=>n.startsWith(k+" ")||n===k);return k?PRODUCE_SEASON[k]:null}
+function seasonIssues(ing,months){return ing.filter(i=>(i.r||"Ortofrutta")==="Ortofrutta"&&i.n).map(i=>({n:i.n,s:produceSeason(i.n)})).filter(x=>x.s&&x.s.length<12&&months.some(m=>!x.s.includes(m)))}
+function seasonIntersection(ing){let set=M("all");ing.forEach(i=>{if((i.r||"Ortofrutta")!=="Ortofrutta")return;const s=produceSeason(i.n||"");if(s&&s.length<12)set=set.filter(m=>s.includes(m))});return set}
+
 /* ============ NUTRIZIONE ============ */
 function eachUse(week,fn){week.forEach((d,i)=>["p","c"].forEach(meal=>{PARTS.forEach(k=>{const id=d[meal][k];if(id&&R(id))fn(R(id),i+1,meal,k)})}))}
 function usage(week=S.week){const u={};eachUse(week,(r,day,meal)=>{(u[r.id]=u[r.id]||[]).push({day,meal})});return u}
@@ -92,8 +106,8 @@ function itemCost(it){const e=priceEntry(it.n);if(!e)return null;let tot=0,misma
 function aggregate(week,addons,extras){
   const u=usage(week),map=new Map();
   const add=(i,q,src)=>{const k=i.n.trim().toLowerCase();if(!k)return;const e=map.get(k)||{n:i.n,r:i.r||"Dispensa",q:[],src:new Set()};if(q)e.q.push(q);e.src.add(src);map.set(k,e)};
-  Object.entries(u).forEach(([id,list])=>{const r=R(id);const m=Math.ceil(list.length/Math.max(1,r.portions));r.ing.forEach(i=>add(i,scaleQ(i.q,m),r.name.split(" ")[0].replace(/[,.;']$/,"")))});
-  (addons||[]).forEach(id=>{const r=R(id);if(r)r.ing.forEach(i=>add(i,i.q,r.name.split(" ")[0]))});
+  Object.entries(u).forEach(([id,list])=>{const r=R(id);const m=Math.ceil(list.length/Math.max(1,r.portions));ingOf(r).forEach(i=>add(i,scaleQ(i.q,m),r.name.split(" ")[0].replace(/[,.;']$/,"")))});
+  (addons||[]).forEach(id=>{const r=R(id);if(r)ingOf(r).forEach(i=>add(i,i.q,r.name.split(" ")[0]))});
   const bc={};week.forEach(d=>["p","c"].forEach(meal=>(d[meal].x||[]).forEach(id=>bc[id]=(bc[id]||0)+1)));
   Object.entries(bc).forEach(([id,n])=>{const b=B(id);if(b&&b.ing)add(b.ing,scaleQ(b.ing.q,n),"aggiunte")});
   week.forEach(d=>["col","spu"].forEach(t=>{const x=d.sn&&d.sn[t];const s=x&&SN(x.id);if(!s)return;
@@ -174,7 +188,7 @@ function generateWeek(weekStart,seed){
     const b1=pick(bases,new Set());if(!b1)continue;const b2=pick(bases.filter(b=>b.family!==b1.family),new Set([b1.id]));if(!b2)continue;const bList=[b1,b2];
     const sx=new Set(),sList=[];const cooked=sides.filter(s=>s.equip!=="nessuno"),raw=sides.filter(s=>s.equip==="nessuno");
     const s1=pick(cooked.length?cooked:sides,sx);if(s1){sList.push(s1);sx.add(s1.id)}const s2=pick(raw.length?raw:sides,sx)||pick(sides,sx);if(s2){sList.push(s2);sx.add(s2.id)}
-    const s3=pick(cooked.filter(s=>!s1||s.equip!==s1.equip||s.freezer),sx)||pick(sides,sx);if(s3){sList.push(s3);sx.add(s3.id)}
+    const fw1=s1?s1.name.split(" ")[0]:"";const s3=pick(cooked.filter(s=>s.name.split(" ")[0]!==fw1&&(!s1||s.equip!==s1.equip||s.freezer)),sx)||pick(sides.filter(s=>s.name.split(" ")[0]!==fw1),sx);if(s3){sList.push(s3);sx.add(s3.id)}
     const week=emptyWeek();
     for(let i=0;i<10;i++){const day=Math.floor(i/2)+1,meal=i%2?"c":"p",slot=week[day-1][meal],m=slots[i];slot.m=m.id;
       if(!m.withBase){const st=day+(meal==="c"?1:0);for(let t=0;t<bList.length;t++){const b=bList[(st+t)%bList.length];if(ok(b,day)){slot.b=b.id;break}}}
@@ -275,7 +289,7 @@ function varietyTips(set){const m=weekMonth();const tips=[];
   if(fr.length)tips.push(`cambia la frutta di uno spuntino con ${fr.join(", ")}`);
   const nuts=[["mandorle","mandorle"],["noci","noci"],["semi di zucca","semi di zucca"],["girasole","semi di girasole"],["sesamo","semi di sesamo"]].filter(([k])=>!set.has(k)).slice(0,2).map(x=>x[1]);
   if(nuts.length)tips.push(`un cucchiaio di ${nuts.join(" o ")} su yogurt o insalata`);
-  const sides=S.recipes.filter(r=>r.role==="side"&&inSeason(r,m)&&r.ing.some(i=>{const k=plantKey(i.n,i.r);return k&&!set.has(k)})).slice(0,2).map(r=>r.name.toLowerCase());
+  const sides=S.recipes.filter(r=>r.role==="side"&&inSeason(r,m)&&ingOf(r).some(i=>{const k=plantKey(i.n,i.r);return k&&!set.has(k)})).slice(0,2).map(r=>r.name.toLowerCase());
   if(sides.length)tips.push(`un contorno diverso (${sides.join(", ")})`);
   const ferm=S.recipes.filter(r=>r.role==="fermento"&&inSeason(r,m)&&r.ing.some(i=>{const k=plantKey(i.n,i.r);return k&&!set.has(k)})).slice(0,1).map(r=>r.name.toLowerCase());
   if(ferm.length)tips.push(`${ferm[0]} dal barattolo`);
@@ -287,11 +301,11 @@ function computeMoves(){ // chiave = sera (0 = domenica, 1 = lunedì, ...)
 function slotStatus(s,day){const sts=PARTS.map(k=>s[k]&&R(s[k])).filter(Boolean).map(r=>status(r,day));
   if(sts.some(x=>x.k==="bad"))return{k:"bad",t:"non si conserva"};if(sts.some(x=>x.k==="fz")||s.k)return{k:"fz",t:"dal freezer"};if(sts.length)return{k:"fr",t:"frigo"};return null}
 function mealTile(d,i,meal){const s=d[meal];const n=slotNut(s);const m=s.m&&R(s.m);const st=slotStatus(s,i+1);
-  const extra=[s.b&&R(s.b)&&R(s.b).name,s.s&&R(s.s)&&R(s.s).name,s.k&&R(s.k)&&R(s.k).name].filter(Boolean).map(x=>x.toLowerCase());
+  const extra=[s.b&&R(s.b)&&R(s.b).name,s.s&&R(s.s)&&nameOf(R(s.s)),s.k&&R(s.k)&&R(s.k).name].filter(Boolean).map(x=>x.toLowerCase());
   const adds=(s.x||[]).map(id=>B(id)).filter(Boolean).map(b=>"+ "+b.name.toLowerCase());
   return `<button class="tile" type="button" data-d="${i}" data-t="${meal}">
     <span class="tile-h"><span class="when">${meal==="p"?"Pranzo":"Cena"}</span><span class="nut">${n.k} kcal · ${n.p} g</span></span>
-    ${m?`<b class="dish">${esc(m.name)}</b>`:`<span class="dish muted">Tocca per scegliere</span>`}
+    ${m?`<b class="dish">${esc(nameOf(m))}</b>`:`<span class="dish muted">Tocca per scegliere</span>`}
     ${extra.length?`<span class="sub">con ${esc(extra.join(" · "))}</span>`:""}
     ${adds.length?`<span class="sub add">${esc(adds.join(" · "))}</span>`:""}
     ${s.n?`<span class="sub">${esc(s.n)}</span>`:""}
@@ -528,7 +542,9 @@ function showDetail(id){
     ${r.salt?`<div class="infobox small"><b>Sale:</b> ${esc(r.salt)}</div>`:""}
     ${r.store?`<div class="infobox small"><b>Si conserva:</b> ${[r.store.dispensa?`dispensa ${r.store.dispensa} gg`:"",r.store.frigo?`frigo ${r.store.frigo} gg`:"",r.store.freezer?`freezer ${r.store.freezer} mesi`:""].filter(Boolean).join(" · ")}</div>`:""}
     ${action}
-    <div class="panel"><h4 style="margin-bottom:6px">Ingredienti</h4><ul class="ing">${r.ing.map(i=>`<li><span class="q">${esc(i.q)}</span><span>${esc(i.n)}</span></li>`).join("")}</ul></div>
+    ${r.seasonal?`<div class="infobox small"><b>Si adatta alla stagione.</b> Questa settimana: ${esc(seasonalPick(r).map(v=>v.n).join(", "))}. A ${MONTHS_LONG[m-1]} può usare: ${esc(SEASONAL_VEG.filter(v=>v.months.includes(m)&&v[r.seasonal]).map(v=>v.n).join(", "))}. Cambia ogni settimana.</div>`:""}
+    ${(()=>{const off=seasonIssues(ingOf(r),[m]);return off.length?`<div class="warnbox small">A ${MONTHS_LONG[m-1]} non sono di stagione: ${off.map(x=>`<b>${esc(x.n)}</b> (${monthsLabel(x.s)})`).join(", ")}.</div>`:""})()}
+    <div class="panel"><h4 style="margin-bottom:6px">Ingredienti${r.seasonal?" di questa settimana":""}</h4><ul class="ing">${ingOf(r).map(i=>`<li><span class="q">${esc(i.q)}</span><span>${esc(i.n)}</span></li>`).join("")}</ul></div>
     <div class="panel"><h4 style="margin-bottom:6px">Procedimento</h4><ol class="steps">${r.steps.map(s=>`<li>${esc(s)}</li>`).join("")}</ol></div>
     <div class="notes">${r.cons?`<div class="note cons"><h4>Conservazione</h4>${esc(r.cons)}</div>`:""}${r.par?`<div class="note par"><h4>In parallelo</h4>${esc(r.par)}</div>`:""}${r.think?`<div class="note think"><h4>Pensaci</h4>${esc(r.think)}</div>`:""}</div>
     ${r.photo?"":`<p class="small muted">Tocca Modifica per aggiungere una tua foto.</p>`}`;
@@ -558,7 +574,9 @@ function showEdit(id,role){
       <div class="row"><label class="btn ghost sm" for="e-photo" style="display:inline-flex;align-items:center">${draft.photo?"Cambia foto":"Scatta o scegli una foto"}</label><input type="file" id="e-photo" accept="image/*" hidden>${draft.photo?`<button class="btn warn sm" type="button" id="e-photo-rm">Togli foto</button>`:""}</div></div>
     <div class="panel stack"><h4>Stagione</h4><p class="small muted">Nei mesi non spuntati non viene proposta in automatico.</p>
       <div class="months">${MONTHS.map((mm,k)=>`<label><input type="checkbox" data-mo="${k+1}" ${draft.months.includes(k+1)?"checked":""}>${mm}</label>`).join("")}</div>
-      <div class="row"><button class="btn ghost sm" type="button" id="allM">Tutto l'anno</button></div></div>
+      <div class="row"><button class="btn ghost sm" type="button" id="allM">Tutto l'anno</button><button class="btn ghost sm" type="button" id="fromIng">Usa i mesi degli ingredienti</button></div>
+      <div id="e-season"></div></div>
+    ${draft.seasonal?`<div class="infobox small">Le verdure di questa ricetta le sceglie l'app in base al mese. Qui modifichi solo gli ingredienti fissi.</div>`:""}
     <div class="panel stack"><h4>Tempi e attrezzatura</h4><p class="small muted">"Preparazione" è il tempo in cui usi le mani, "cottura" quello in cui cuoce da sola: servono al piano di lavoro.</p>
       <div class="three"><label class="f">Porzioni / pezzi<input type="number" id="e-portions" min="1" max="40" value="${draft.portions}"></label>
         <label class="f">Preparazione (min)<input type="number" id="e-prep" min="0" max="240" value="${draft.prepMin}"></label>
@@ -593,7 +611,13 @@ function showEdit(id,role){
   const g=s=>f.querySelector(s);
   const sync=()=>{const role=g("#e-role").value;g("#e-temp-l").hidden=g("#e-equip").value!=="forno";g("#e-cons-meal").hidden=!["main","base","side"].includes(role);g("#e-cons-scorta").hidden=role!=="scorta";g("#e-cons-dolce").hidden=role!=="dolce";g("#e-cons-ferm").hidden=role!=="fermento";g("#e-fam-l").hidden=role!=="base";g("#e-wb-l").hidden=role!=="main"};
   sync();g("#e-equip").addEventListener("change",sync);g("#e-role").addEventListener("change",sync);
-  g("#allM").addEventListener("click",()=>f.querySelectorAll("[data-mo]").forEach(c=>c.checked=true));
+  const checkSeason=()=>{readIng();const months=[...f.querySelectorAll("[data-mo]")].filter(c=>c.checked).map(c=>+c.dataset.mo);const off=seasonIssues(draft.ing,months);const box=g("#e-season");
+    box.innerHTML=off.length?`<div class="warnbox small">Fuori stagione in alcuni mesi spuntati: ${off.map(x=>`<b>${esc(x.n)}</b> (di stagione ${monthsLabel(x.s)})`).join(", ")}.</div>`:(draft.ing.some(i=>produceSeason(i.n||""))?`<p class="small muted">Tutti gli ingredienti freschi sono di stagione nei mesi spuntati.</p>`:"")};
+  g("#allM").addEventListener("click",()=>{f.querySelectorAll("[data-mo]").forEach(c=>c.checked=true);checkSeason()});
+  g("#fromIng").addEventListener("click",()=>{readIng();const inter=seasonIntersection(draft.ing);if(!inter.length){g("#e-season").innerHTML=`<div class="warnbox small">Non c'è nessun mese in cui questi ingredienti siano tutti di stagione insieme. Forse conviene dividerla in due versioni, una per stagione.</div>`;return}
+    f.querySelectorAll("[data-mo]").forEach(c=>c.checked=inter.includes(+c.dataset.mo));checkSeason();toast(inter.length===12?"Tutto l'anno":"Mesi impostati: "+monthsLabel(inter))});
+  f.querySelectorAll("[data-mo]").forEach(c=>c.addEventListener("change",checkSeason));
+  g("#e-ing").addEventListener("change",checkSeason);checkSeason();
   g("#cancel").addEventListener("click",()=>id?showDetail(id):goBack());
   g("#e-addIng").addEventListener("click",()=>{readIng();draft.ing.push({q:"",n:"",r:"Ortofrutta"});renderIngRows()});
   g("#e-photo").addEventListener("change",async e=>{const file=e.target.files[0];if(!file)return;try{draft.photo=await shrink(file);renderPhotoPrev();toast("Foto pronta: ricordati di salvare")}catch(err){toast("Non riesco a leggere questa foto")}});
