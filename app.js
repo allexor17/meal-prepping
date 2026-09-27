@@ -26,7 +26,7 @@ const RENAMED={chili:"stufato"}, REMOVED=["pomodori"];
 function emptySlot(){return{m:null,b:null,s:null,k:null,x:[],n:""}}
 function emptyDay(){return{p:emptySlot(),c:emptySlot(),sn:{col:{id:null,f:null},spu:{id:null,f:null}}}}
 function emptyWeek(){return DAYS.map(emptyDay)}
-function defaults(){return{v:4,libVersion:LIB_VERSION,recipes:clone(LIB),week:null,weekStart:null,extras:[{q:"",n:"sale iodato, pepe, olio EVO",r:"Basi"},{q:"",n:"spezie dolci (curcuma, cumino, paprika dolce, origano, cannella)",r:"Basi"}],have:[],history:[],stock:[],addons:[],prices:{},planView:"list",filter:"tutte",seed:1,leftoverDone:[]}}
+function defaults(){return{v:4,libVersion:LIB_VERSION,recipes:clone(LIB),week:null,weekStart:null,extras:[{q:"",n:"sale iodato, pepe, olio EVO",r:"Basi"},{q:"",n:"spezie dolci (curcuma, cumino, paprika dolce, origano, cannella)",r:"Basi"}],have:[],history:[],stock:[],addons:[],prices:{},planView:"list",filter:"tutte",seed:1,leftoverDone:[],supps:[],suppTaken:{}}}
 function mapId(id){if(!id)return null;if(RENAMED[id])return RENAMED[id];if(REMOVED.includes(id))return null;return id}
 function mergeLib(st){
   const libIds=new Set(LIB.map(r=>r.id));const out=[];const seen=new Set();
@@ -329,20 +329,78 @@ function renderWeek(){
     return `<section class="dayrow">
       <div class="dayhead"><h3>${DAYS[i]} <span>${fmtDate(addDays(S.weekStart,i))}</span></h3>
         <div class="daytot"><span class="${pOk?"okv":"badv"}">${n.p} g proteine</span><span class="${kOk?"okv":"badv"}">${n.k} kcal</span>${dayFerm(d)?`<span class="okv">fermentato ✓</span>`:`<span class="badv">manca un fermentato</span>`}</div></div>
+      ${renderSuppRow(d,i)}
       <div class="tiles">${snackTile(d,i,"col")}${mealTile(d,i,"p")}${snackTile(d,i,"spu")}${mealTile(d,i,"c")}</div>
       ${i<4?moveLine(i+1,"Stasera"):""}
     </section>`}).join("");
   document.querySelectorAll("#days .tile").forEach(t=>t.addEventListener("click",()=>openEditor(+t.dataset.d,t.dataset.t)));
+  bindSupps(document.getElementById("days"));
   renderAddons();renderChecks();
 }
+
+/* ============ INTEGRATORI ============ */
+const SUPP_WHEN=[["digiuno","A digiuno"],["colazione","Colazione"],["pranzo","Pranzo"],["spuntino","Spuntino"],["cena","Cena"],["sera","Prima di dormire"]];
+const WHEN_LABEL=Object.fromEntries(SUPP_WHEN);
+function suppTips(name){const n=(name||"").toLowerCase();const t=[];
+  if(/ferro|iron|bisglicinat|ferroso|ferrico/.test(n))t.push("Ferro: si assorbe meglio lontano da latticini, tè e caffè (1–2 ore) e insieme alla vitamina C, per esempio un agrume o un kiwi.");
+  if(/omega|epa|dha|olio di pesce|olio di krill|alga/.test(n))t.push("Omega-3: meglio con un pasto che contiene grassi, per esempio pranzo o cena.");
+  if(/vitamina d|vit\.? ?d|\bd3\b|colecalciferolo/.test(n))t.push("Vitamina D: è liposolubile, meglio con un pasto che contiene grassi.");
+  if(/k2|menachinone|mk-?7/.test(n))t.push("Vitamina K2: liposolubile, meglio con un pasto che contiene grassi.");
+  if(/calcio/.test(n))t.push("Calcio: lontano dal ferro, perché competono per l'assorbimento.");
+  if(/magnesio/.test(n))t.push("Magnesio: spesso si prende la sera; a dosi alte può avere effetto lassativo.");
+  if(/zinco/.test(n))t.push("Zinco: lontano da ferro e calcio, che ne riducono l'assorbimento.");
+  return t}
+const CALCIUM_RE=/yogurt|kefir|parmigiano|grana|feta|ricotta|mozzarella|latte|bevanda di soia/;
+function slotIngNames(d,when){const names=[];
+  if(when==="colazione"||when==="spuntino"){const x=d.sn[when==="colazione"?"col":"spu"];const sn=x&&SN(x.id);if(sn)sn.ing.forEach(i=>names.push(i.n))}
+  if(when==="pranzo"||when==="cena"){const s=d[when==="pranzo"?"p":"c"];PARTS.forEach(k=>{const r=s[k]&&R(s[k]);if(r)ingOf(r).forEach(i=>names.push(i.n))});(s.x||[]).forEach(id=>{const b=B(id);if(b&&b.ing)names.push(b.ing.n)})}
+  return names.map(n=>n.toLowerCase())}
+function suppWarn(sp,d){if(!/ferro|iron|bisglicinat|ferroso|ferrico/i.test(sp.name))return"";const hit=slotIngNames(d,sp.when).find(n=>CALCIUM_RE.test(n));return hit?`${(WHEN_LABEL[sp.when]||"").toLowerCase()} c'è ${hit}: il calcio riduce l'assorbimento del ferro, valuta un altro momento`:""}
+function takenSet(i){const w=S.suppTaken[S.weekStart]||{};return new Set(w[i]||[])}
+function renderSuppRow(d,i){const list=(S.supps||[]).filter(sp=>(sp.days||[0,1,2,3,4]).includes(i)).sort((a,b)=>SUPP_WHEN.findIndex(w=>w[0]===a.when)-SUPP_WHEN.findIndex(w=>w[0]===b.when));
+  if(!list.length)return i===0?`<button class="btn ghost sm supp-add" type="button" data-supp-manage="1">+ Integratori</button>`:"";
+  const tk=takenSet(i);
+  return `<div class="supps"><span class="lab">Integratori</span>${list.map(sp=>{const w=suppWarn(sp,d);return `<label class="supp${tk.has(sp.id)?" done":""}"><input type="checkbox" data-supp="${sp.id}" data-day="${i}" ${tk.has(sp.id)?"checked":""}><span><b>${esc(sp.name)}</b>${sp.dose?` · ${esc(sp.dose)}`:""} · ${WHEN_LABEL[sp.when]||""}${w?`<br><span class="warn">⚠ ${esc(w)}</span>`:""}</span></label>`}).join("")}<button class="linkbtn" type="button" data-supp-manage="1">modifica</button></div>`}
+function bindSupps(root){
+  root.querySelectorAll("[data-supp]").forEach(cb=>cb.addEventListener("change",()=>{const w=S.suppTaken[S.weekStart]=S.suppTaken[S.weekStart]||{};const set=new Set(w[cb.dataset.day]||[]);cb.checked?set.add(cb.dataset.supp):set.delete(cb.dataset.supp);w[cb.dataset.day]=[...set];
+    const keys=Object.keys(S.suppTaken).sort();while(keys.length>3)delete S.suppTaken[keys.shift()];save();cb.closest(".supp").classList.toggle("done",cb.checked)}));
+  root.querySelectorAll("[data-supp-manage]").forEach(b=>b.addEventListener("click",()=>{editing={supp:true};renderEditor();document.getElementById("sheet").hidden=false;document.body.style.overflow="hidden"}))}
+let suppDraft=null;
+function renderSuppEditor(){
+  document.getElementById("sheetTitle").textContent="Integratori";document.getElementById("sheetDay").innerHTML="";
+  const body=document.getElementById("sheetBody");const list=S.supps||[];
+  if(!suppDraft)suppDraft={id:null,name:"",dose:"",when:"colazione",days:[0,1,2,3,4],note:""};
+  const tips=suppTips(suppDraft.name);
+  body.innerHTML=`${list.length?`<div class="panel">${list.map(sp=>`<div class="stockrow"><div><b>${esc(sp.name)}</b><div class="sub">${esc(sp.dose||"")}${sp.dose?" · ":""}${WHEN_LABEL[sp.when]} · ${(sp.days||[]).length===5?"tutti i giorni":(sp.days||[]).map(x=>DAYS[x].slice(0,3)).join(", ")}${sp.note?" · "+esc(sp.note):""}</div></div><div class="row"><button class="btn ghost sm" type="button" data-sedit="${sp.id}">Modifica</button><button class="btn warn sm" type="button" data-sdel="${sp.id}" aria-label="Elimina">×</button></div></div>`).join("")}</div>`:`<p class="small muted">Nessun integratore ancora. Aggiungili qui sotto: compariranno all'inizio di ogni giornata, da spuntare quando li prendi.</p>`}
+    <div class="panel stack"><h4>${suppDraft.id?"Modifica integratore":"Aggiungi un integratore"}</h4>
+      <label class="f">Nome<input type="text" id="sp-name" value="${esc(suppDraft.name)}" placeholder="Es. Omega-3, Ferro + K2, Vitamina D3"></label>
+      <div class="two"><label class="f">Dose<input type="text" id="sp-dose" value="${esc(suppDraft.dose)}" placeholder="Es. 1 capsula"></label>
+      <label class="f">Quando<select id="sp-when">${SUPP_WHEN.map(([k,l])=>`<option value="${k}"${suppDraft.when===k?" selected":""}>${l}</option>`).join("")}</select></label></div>
+      <div class="f"><span class="small" style="font-weight:700;color:var(--ink-2)">Giorni</span><div class="row">${DAYS.map((dn,k)=>`<label class="check"><input type="checkbox" data-sday="${k}" ${suppDraft.days.includes(k)?"checked":""}>${dn.slice(0,3)}</label>`).join("")}</div></div>
+      <label class="f">Nota<input type="text" id="sp-note" value="${esc(suppDraft.note)}" placeholder="Es. prescritto fino a dicembre"></label>
+      <div id="sp-tips">${tips.length?`<div class="infobox small">${tips.map(esc).join("<br>")}</div>`:""}</div>
+      <div class="row"><button class="btn sm" type="button" id="sp-save">${suppDraft.id?"Salva modifiche":"Aggiungi"}</button>${suppDraft.id?`<button class="btn ghost sm" type="button" id="sp-cancel">Annulla</button>`:""}</div>
+      <p class="small muted">L'app non suggerisce dosi: quelle, e se servono, le decidi con chi ti segue.</p></div>`;
+  const g=q=>body.querySelector(q);
+  const read=()=>{suppDraft.name=g("#sp-name").value;suppDraft.dose=g("#sp-dose").value;suppDraft.when=g("#sp-when").value;suppDraft.note=g("#sp-note").value;suppDraft.days=[...body.querySelectorAll("[data-sday]")].filter(c=>c.checked).map(c=>+c.dataset.sday)};
+  g("#sp-name").addEventListener("input",()=>{const t=suppTips(g("#sp-name").value);g("#sp-tips").innerHTML=t.length?`<div class="infobox small">${t.map(esc).join("<br>")}</div>`:""});
+  g("#sp-save").addEventListener("click",()=>{read();if(!suppDraft.name.trim()){toast("Scrivi il nome");return}if(!suppDraft.days.length){toast("Scegli almeno un giorno");return}
+    S.supps=S.supps||[];if(suppDraft.id){const k=S.supps.findIndex(x=>x.id===suppDraft.id);S.supps[k]={...suppDraft,name:suppDraft.name.trim()}}else S.supps.push({...suppDraft,id:uid("i"),name:suppDraft.name.trim()});
+    suppDraft=null;save();toast("Salvato");renderSuppEditor()});
+  const c=g("#sp-cancel");c&&c.addEventListener("click",()=>{suppDraft=null;renderSuppEditor()});
+  body.querySelectorAll("[data-sedit]").forEach(b=>b.addEventListener("click",()=>{suppDraft=clone(S.supps.find(x=>x.id===b.dataset.sedit));renderSuppEditor();g("#sp-name")&&body.querySelector("#sp-name").focus()}));
+  body.querySelectorAll("[data-sdel]").forEach(b=>b.addEventListener("click",()=>{S.supps=S.supps.filter(x=>x.id!==b.dataset.sdel);save();renderSuppEditor()}));
+}
+
 /* ---- pannello di modifica ---- */
 let editing=null;
 function openEditor(i,t){editing={i,t};renderEditor();const sh=document.getElementById("sheet");sh.hidden=false;document.body.style.overflow="hidden";setTimeout(()=>{const f=sh.querySelector("select");f&&f.focus()},50)}
-function closeEditor(){document.getElementById("sheet").hidden=true;document.body.style.overflow="";const e=editing;editing=null;renderWeek();if(e){const t=document.querySelector(`#days .tile[data-d="${e.i}"][data-t="${e.t}"]`);t&&t.focus()}}
+function closeEditor(){document.getElementById("sheet").hidden=true;document.body.style.overflow="";const e=editing;editing=null;suppDraft=null;renderWeek();if(e&&!e.supp){const t=document.querySelector(`#days .tile[data-d="${e.i}"][data-t="${e.t}"]`);t&&t.focus()}}
 document.getElementById("sheetClose").addEventListener("click",closeEditor);
 document.getElementById("sheet").addEventListener("click",e=>{if(e.target.id==="sheet")closeEditor()});
 document.addEventListener("keydown",e=>{if(e.key==="Escape"&&editing)closeEditor()});
 function renderEditor(){
+  if(editing&&editing.supp)return renderSuppEditor();
   const{i,t}=editing;const d=S.week[i];const body=document.getElementById("sheetBody");
   const label={col:"Colazione",p:"Pranzo",spu:"Spuntino",c:"Cena"}[t];
   document.getElementById("sheetTitle").textContent=`${DAYS[i]} · ${label}`;
