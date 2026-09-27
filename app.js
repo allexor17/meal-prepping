@@ -280,41 +280,80 @@ function varietyTips(set){const m=weekMonth();const tips=[];
   const ferm=S.recipes.filter(r=>r.role==="fermento"&&inSeason(r,m)&&r.ing.some(i=>{const k=plantKey(i.n,i.r);return k&&!set.has(k)})).slice(0,1).map(r=>r.name.toLowerCase());
   if(ferm.length)tips.push(`${ferm[0]} dal barattolo`);
   return tips.length?tips:["prova un cereale o un legume che non usi da tempo"]}
+function computeMoves(){ // chiave = sera (0 = domenica, 1 = lunedì, ...)
+  const moves={};Object.entries(usage()).forEach(([id,list])=>{const r=R(id);list.forEach(x=>{if(status(r,x.day).k==="fz")(moves[x.day-1]=moves[x.day-1]||new Set()).add(r.name)})});
+  S.week.forEach((d,i)=>["p","c"].forEach(meal=>{const k=d[meal].k;if(k)(moves[i]=moves[i]||new Set()).add((R(k)||{name:k}).name+" (scorta)")}));
+  return moves}
+function slotStatus(s,day){const sts=PARTS.map(k=>s[k]&&R(s[k])).filter(Boolean).map(r=>status(r,day));
+  if(sts.some(x=>x.k==="bad"))return{k:"bad",t:"non si conserva"};if(sts.some(x=>x.k==="fz")||s.k)return{k:"fz",t:"dal freezer"};if(sts.length)return{k:"fr",t:"frigo"};return null}
+function mealTile(d,i,meal){const s=d[meal];const n=slotNut(s);const m=s.m&&R(s.m);const st=slotStatus(s,i+1);
+  const extra=[s.b&&R(s.b)&&R(s.b).name,s.s&&R(s.s)&&R(s.s).name,s.k&&R(s.k)&&R(s.k).name].filter(Boolean).map(x=>x.toLowerCase());
+  const adds=(s.x||[]).map(id=>B(id)).filter(Boolean).map(b=>"+ "+b.name.toLowerCase());
+  return `<button class="tile" type="button" data-d="${i}" data-t="${meal}">
+    <span class="tile-h"><span class="when">${meal==="p"?"Pranzo":"Cena"}</span><span class="nut">${n.k} kcal · ${n.p} g</span></span>
+    ${m?`<b class="dish">${esc(m.name)}</b>`:`<span class="dish muted">Tocca per scegliere</span>`}
+    ${extra.length?`<span class="sub">con ${esc(extra.join(" · "))}</span>`:""}
+    ${adds.length?`<span class="sub add">${esc(adds.join(" · "))}</span>`:""}
+    ${s.n?`<span class="sub">${esc(s.n)}</span>`:""}
+    ${st?`<span class="tape ${st.k}">${st.t}</span>`:""}
+  </button>`}
+function snackTile(d,i,t){const x=d.sn[t];const s=x.id&&SN(x.id);const n=snackNut(x);const f=x.f&&FRT(x.f);
+  return `<button class="tile soft" type="button" data-d="${i}" data-t="${t}">
+    <span class="tile-h"><span class="when">${t==="col"?"Colazione":"Spuntino"}</span><span class="nut">${s?`${n.k} kcal · ${n.p} g`:""}</span></span>
+    ${s?`<b class="dish">${esc(s.name)}</b>`:`<span class="dish muted">Nessuno · tocca per scegliere</span>`}
+    ${s&&s.fruit&&f?`<span class="sub">frutta: ${esc(f.label)}</span>`:""}
+    <span class="row" style="gap:4px"><span class="pill">consigliato</span>${s&&s.ferm?`<span class="badge">fermentato</span>`:""}</span>
+  </button>`}
 function renderWeek(){
   renderLabel();const m=weekMonth();
-  document.getElementById("weekIntro").innerHTML=`Settimana di <b>${MONTHS_LONG[m-1]}</b>: ricette di stagione e non piccanti, ${KCAL_TARGET} kcal e ${PROT_MIN}–${PROT_MAX} g di proteine al giorno con colazione e spuntino, due cereali di famiglie diverse, un fermentato al giorno, pesce azzurro e una spesa diversa dalla settimana precedente.`;
+  document.getElementById("weekIntro").innerHTML=`Settimana di <b>${MONTHS_LONG[m-1]}</b>: ricette di stagione e non piccanti, ${KCAL_TARGET} kcal e ${PROT_MIN}–${PROT_MAX} g di proteine al giorno, due cereali di famiglie diverse, un fermentato al giorno, pesce azzurro e una spesa diversa dalla settimana precedente. Tocca un riquadro per cambiarlo.`;
   renderVariety();renderCostBox(document.getElementById("weekCost"));
-  const hasStock=S.stock.some(s=>s.where==="freezer");
-  const boostOpts=`<option value="">+ aggiunta</option>`+BOOSTERS.map(b=>`<option value="${b.id}">${esc(b.name)}${b.home?" (fatti in casa)":""} · +${b.protein} g</option>`).join("");
-  document.getElementById("days").innerHTML=S.week.map((d,i)=>{const n=dayNut(d);
-    const line=(s,k,lab,role)=>{const r=s[k]&&R(s[k]);const st=r?status(r,i+1):null;
-      return `<div class="line"><span class="lab">${lab}</span><div class="sel"><select data-k="${k}" aria-label="${lab}">${optList(role,s[k])}</select>${st?`<div><span class="tape ${st.k}">${esc(st.t)}</span></div>`:""}</div></div>`};
-    const snackLine=(t,lab)=>{const x=d.sn[t];const s=x.id&&SN(x.id);const nn=snackNut(x);
-      return `<div class="line"><span class="lab">${lab}</span><div class="sel"><select data-sn="${t}" aria-label="${lab}">${snackOpts(t==="col"?"colazione":"spuntino",x.id)}</select>
-        ${s&&s.fruit?`<select data-fr="${t}" aria-label="Frutta">${fruitOpts(x.f)}</select>`:""}
-        ${s?`<div class="small muted">${nn.k} kcal · ${nn.p} g${s.ferm?` · <span class="badge">fermentato</span>`:""}</div>`:""}</div></div>`};
-    return `<div class="day"><h3>${DAYS[i]}<span>${fmtDate(addDays(S.weekStart,i))}</span></h3>
-    <div class="bars">${bar("proteine",n.p,"g",PROT_MIN,PROT_MAX,130)}${bar("energia",n.k,"kcal",KCAL_TARGET-100,KCAL_TARGET+100,2400)}</div>
-    ${["p","c"].map(meal=>{const s=d[meal];const sn=slotNut(s);
-      return `<div class="slot" data-d="${i}" data-m="${meal}"><div class="row" style="justify-content:space-between"><span class="when">${meal==="p"?"Pranzo":"Cena"}</span><span class="prot num">${sn.p} g · ${sn.k} kcal</span></div>
-        ${line(s,"m","Piatto","main")}${line(s,"b","Base","base")}${line(s,"s","Contorno","side")}
-        ${hasStock||s.k?`<div class="line"><span class="lab">Sugo</span><div class="sel"><select data-kk="1" aria-label="Sugo dalle scorte">${stockOpts(s.k)}</select>${s.k?`<div><span class="tape fz">dalle scorte</span></div>`:""}</div></div>`:""}
-        <div class="row">${(s.x||[]).map((id,k)=>{const b=B(id);return b?`<span class="boost">+ ${esc(b.name)}${b.ing?` (${b.ing.q})`:""} · ${b.protein} g<button type="button" data-bx="${k}" aria-label="Togli">×</button></span>`:""}).join("")}
-          <select class="addx" aria-label="Aggiungi" style="width:auto;font-size:14px;padding:4px 6px">${boostOpts}</select></div>
-        <input class="note" type="text" placeholder="Note" value="${esc(s.n)}" aria-label="Note"></div>`}).join("")}
-    <div class="snackbox" data-d="${i}">${snackLine("col","Colazione")}${snackLine("spu","Spuntino")}${dayFerm(d)?"":`<span class="badge no">manca un fermentato</span>`}</div>
-    </div>`}).join("");
-  document.querySelectorAll(".slot").forEach(el=>{const s=S.week[+el.dataset.d][el.dataset.m];
-    el.querySelectorAll("select[data-k]").forEach(sel=>sel.addEventListener("change",()=>{s[sel.dataset.k]=sel.value||null;save();renderWeek()}));
-    const kk=el.querySelector("select[data-kk]");kk&&kk.addEventListener("change",()=>{s.k=kk.value||null;save();renderWeek()});
-    el.querySelectorAll("[data-bx]").forEach(b=>b.addEventListener("click",()=>{s.x.splice(+b.dataset.bx,1);save();renderWeek()}));
-    el.querySelector(".addx").addEventListener("change",e=>{if(!e.target.value)return;s.x.push(e.target.value);save();renderWeek()});
-    el.querySelector("input.note").addEventListener("change",e=>{s.n=e.target.value;save()})});
-  document.querySelectorAll(".snackbox").forEach(el=>{const d=S.week[+el.dataset.d];
-    el.querySelectorAll("select[data-sn]").forEach(sel=>sel.addEventListener("change",()=>{const t=sel.dataset.sn;d.sn[t].id=sel.value||null;const s=SN(sel.value);
-      if(s&&s.fruit&&!d.sn[t].f){const f=FRUITS.find(f=>f.months.includes(weekMonth()));d.sn[t].f=f?f.id:null}save();renderWeek()}));
-    el.querySelectorAll("select[data-fr]").forEach(sel=>sel.addEventListener("change",()=>{d.sn[sel.dataset.fr].f=sel.value;save();renderWeek()}))});
+  const moves=computeMoves();
+  const moveLine=(k,label)=>moves[k]?`<div class="moveline"><span class="tape fz">${label}</span> sposta dal freezer al frigo: ${esc([...moves[k]].join(", "))}</div>`:"";
+  document.getElementById("days").innerHTML=(moves[0]?`<div class="move"><h4>Domenica sera: dal freezer al frigo</h4><p class="small">${esc([...moves[0]].join(", "))}</p></div>`:"")+S.week.map((d,i)=>{const n=dayNut(d);
+    const pOk=n.p>=PROT_MIN&&n.p<=PROT_MAX,kOk=Math.abs(n.k-KCAL_TARGET)<=100;
+    return `<section class="dayrow">
+      <div class="dayhead"><h3>${DAYS[i]} <span>${fmtDate(addDays(S.weekStart,i))}</span></h3>
+        <div class="daytot"><span class="${pOk?"okv":"badv"}">${n.p} g proteine</span><span class="${kOk?"okv":"badv"}">${n.k} kcal</span>${dayFerm(d)?`<span class="okv">fermentato ✓</span>`:`<span class="badv">manca un fermentato</span>`}</div></div>
+      <div class="tiles">${snackTile(d,i,"col")}${mealTile(d,i,"p")}${snackTile(d,i,"spu")}${mealTile(d,i,"c")}</div>
+      ${i<4?moveLine(i+1,"Stasera"):""}
+    </section>`}).join("");
+  document.querySelectorAll("#days .tile").forEach(t=>t.addEventListener("click",()=>openEditor(+t.dataset.d,t.dataset.t)));
   renderAddons();renderChecks();
+}
+/* ---- pannello di modifica ---- */
+let editing=null;
+function openEditor(i,t){editing={i,t};renderEditor();const sh=document.getElementById("sheet");sh.hidden=false;document.body.style.overflow="hidden";setTimeout(()=>{const f=sh.querySelector("select");f&&f.focus()},50)}
+function closeEditor(){document.getElementById("sheet").hidden=true;document.body.style.overflow="";const e=editing;editing=null;renderWeek();if(e){const t=document.querySelector(`#days .tile[data-d="${e.i}"][data-t="${e.t}"]`);t&&t.focus()}}
+document.getElementById("sheetClose").addEventListener("click",closeEditor);
+document.getElementById("sheet").addEventListener("click",e=>{if(e.target.id==="sheet")closeEditor()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&editing)closeEditor()});
+function renderEditor(){
+  const{i,t}=editing;const d=S.week[i];const body=document.getElementById("sheetBody");
+  const label={col:"Colazione",p:"Pranzo",spu:"Spuntino",c:"Cena"}[t];
+  document.getElementById("sheetTitle").textContent=`${DAYS[i]} · ${label}`;
+  if(t==="col"||t==="spu"){const x=d.sn[t];const s=x.id&&SN(x.id);const n=snackNut(x);
+    body.innerHTML=`<label class="f">${t==="col"?"Colazione consigliata":"Spuntino consigliato"}<select id="ed-sn">${snackOpts(t==="col"?"colazione":"spuntino",x.id)}</select></label>
+      ${s&&s.fruit?`<label class="f">Frutta<select id="ed-fr">${fruitOpts(x.f)}</select></label>`:""}
+      ${s?`<div class="infobox small"><b>${n.k} kcal · ${n.p} g di proteine</b>${s.ferm?" · fermentato":""}<br>${esc(s.why)}</div>`:""}`;
+    const sel=body.querySelector("#ed-sn");sel.addEventListener("change",()=>{x.id=sel.value||null;const ns=SN(sel.value);if(ns&&ns.fruit&&!x.f){const f=FRUITS.find(f=>f.months.includes(weekMonth()));x.f=f?f.id:null}save();renderEditor()});
+    const fr=body.querySelector("#ed-fr");fr&&fr.addEventListener("change",()=>{x.f=fr.value;save();renderEditor()});
+  }else{const s=d[t];const n=slotNut(s);
+    const line=(k,lab,role)=>{const r=s[k]&&R(s[k]);const st=r?status(r,i+1):null;return `<label class="f">${lab}<select data-k="${k}">${optList(role,s[k])}</select></label>${st?`<div><span class="tape ${st.k}">${esc(st.t)}</span></div>`:""}`};
+    const boostOpts=`<option value="">+ aggiungi</option>`+BOOSTERS.map(b=>`<option value="${b.id}">${esc(b.name)}${b.home?" (fatti in casa)":""} · +${b.protein} g</option>`).join("");
+    const hasStock=S.stock.some(x=>x.where==="freezer");
+    body.innerHTML=`${line("m","Piatto principale","main")}${line("b","Base (cereale)","base")}${line("s","Contorno","side")}
+      ${hasStock||s.k?`<label class="f">Sugo dalle scorte<select data-kk="1">${stockOpts(s.k)}</select></label>`:""}
+      <div class="f"><span class="small" style="font-weight:700;color:var(--ink-2)">Aggiunte</span><div class="row">${(s.x||[]).map((id,k)=>{const b=B(id);return b?`<span class="boost">+ ${esc(b.name)}${b.ing?` (${b.ing.q})`:""} · ${b.protein} g<button type="button" data-bx="${k}" aria-label="Togli">×</button></span>`:""}).join("")}<select class="addx" aria-label="Aggiungi" style="width:auto">${boostOpts}</select></div></div>
+      <label class="f">Note<input type="text" id="ed-note" value="${esc(s.n)}" placeholder="Es. condire con limone"></label>
+      <div class="infobox small"><b>${n.k} kcal · ${n.p} g di proteine</b> in questo pasto</div>`;
+    body.querySelectorAll("select[data-k]").forEach(sel=>sel.addEventListener("change",()=>{s[sel.dataset.k]=sel.value||null;save();renderEditor()}));
+    const kk=body.querySelector("select[data-kk]");kk&&kk.addEventListener("change",()=>{s.k=kk.value||null;save();renderEditor()});
+    body.querySelectorAll("[data-bx]").forEach(b=>b.addEventListener("click",()=>{s.x.splice(+b.dataset.bx,1);save();renderEditor()}));
+    body.querySelector(".addx").addEventListener("change",e=>{if(!e.target.value)return;s.x.push(e.target.value);save();renderEditor()});
+    body.querySelector("#ed-note").addEventListener("change",e=>{s.n=e.target.value;save()});
+  }
+  const dn=dayNut(d);document.getElementById("sheetDay").innerHTML=`Giornata: <b>${dn.p} g</b> di proteine · <b>${dn.k} kcal</b>`;
 }
 function renderAddons(){
   const el=document.getElementById("addonsBox");if(!S.addons.length){el.innerHTML="";return}
@@ -343,8 +382,6 @@ function renderChecks(){
   if(prev){const sim=jaccard(shopKeys(S.week,S.addons),new Set(prev.keys));if(sim>.6)warns.push(`La spesa è molto simile a quella della settimana precedente (${Math.round(sim*100)}% di ingredienti in comune).`)}
   let h="";
   if(warns.length)h+=`<div class="warnbox"><h4>Da controllare</h4><ul>${warns.map(w=>`<li>${w}</li>`).join("")}</ul></div>`;
-  const mk=Object.keys(moves).map(Number).sort((a,b)=>a-b);
-  if(mk.length)h+=`<div class="moves">${mk.map(k=>`<div class="move"><div class="eyebrow">Sera di trasloco</div><h4>${k===0?"Domenica":DAYS[k-1]} sera: dal freezer al frigo</h4><ul>${[...moves[k]].map(x=>`<li>1 porzione di ${esc(x)}</li>`).join("")}</ul></div>`).join("")}</div>`;
   if(extra.length){const tag=S.weekStart;h+=`<div class="okbox stack"><div><b>Porzioni extra</b> che avanzano a fine settimana:</div>${extra.map(({r,left})=>{const done=S.leftoverDone.includes(tag+r.id);
     return `<div class="row" style="justify-content:space-between"><span>${left} × ${esc(r.name)}${r.freezer?"":" (non congelabile: mangiala entro "+r.fridgeDays+" gg)"}</span>${r.freezer?(done?`<span class="small muted">nelle scorte</span>`:`<button class="btn sm" type="button" data-left="${r.id}" data-n="${left}">Metti nelle scorte</button>`):""}</div>`}).join("")}</div>`}
   const el=document.getElementById("weekChecks");el.innerHTML=h;
