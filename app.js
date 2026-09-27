@@ -26,7 +26,7 @@ const RENAMED={chili:"stufato"}, REMOVED=["pomodori"];
 function emptySlot(){return{m:null,b:null,s:null,k:null,x:[],n:""}}
 function emptyDay(){return{p:emptySlot(),c:emptySlot(),sn:{col:{id:null,f:null},spu:{id:null,f:null}}}}
 function emptyWeek(){return DAYS.map(emptyDay)}
-function defaults(){return{v:4,libVersion:LIB_VERSION,recipes:clone(LIB),week:null,weekStart:null,extras:[{q:"",n:"sale iodato, pepe, olio EVO",r:"Basi"},{q:"",n:"spezie dolci (curcuma, cumino, paprika dolce, origano, cannella)",r:"Basi"}],have:[],history:[],stock:[],addons:[],prices:{},planView:"list",filter:"tutte",seed:1,leftoverDone:[],supps:[],suppTaken:{}}}
+function defaults(){return{v:4,libVersion:LIB_VERSION,recipes:clone(LIB),week:null,weekStart:null,extras:[{q:"",n:"sale iodato, pepe, olio EVO",r:"Basi"},{q:"",n:"spezie dolci (curcuma, cumino, paprika dolce, origano, cannella)",r:"Basi"}],have:[],history:[],stock:[],addons:[],prices:{},planView:"list",filter:"tutte",seed:1,leftoverDone:[],supps:[],suppTaken:{},pantry:[],seeded:{}}}
 function mapId(id){if(!id)return null;if(RENAMED[id])return RENAMED[id];if(REMOVED.includes(id))return null;return id}
 function mergeLib(st){
   const libIds=new Set(LIB.map(r=>r.id));const out=[];const seen=new Set();
@@ -48,6 +48,8 @@ function load(){
   return defaults();
 }
 let S=load();
+if(!S.seeded)S.seeded={};if(!S.pantry)S.pantry=[];
+if(!S.seeded.receipt0927){["mandorle","semi di zucca","semi di chia","crema 100% nocciole","quinoa","miglio","bulgur"].forEach(k=>{if(!S.pantry.includes(k))S.pantry.push(k)});S.seeded.receipt0927=true;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){toast("Memoria piena: togli qualche foto o esporta un backup");return false}}
 const R=id=>S.recipes.find(r=>r.id===id);
 const B=id=>BOOSTERS.find(b=>b.id===id);
@@ -129,7 +131,7 @@ function weekOily(week){const o=new Set();eachUse(week,r=>{if(r.oily)o.add(r.nam
 
 /* ============ GENERATORE ============ */
 function fillSnacks(week,month,rnd,keep){
-  const fruits=shuffle(FRUITS.filter(f=>f.months.includes(month)),rnd);
+  const fruits=shuffle(FRUITS.filter(f=>f.months.includes(month)&&f.auto!==false),rnd);
   const okNeeds=s=>!s.needs||stockCount(s.needs)>0;
   const cols=SNACKS.filter(s=>s.type==="colazione"&&okNeeds(s)),spus=SNACKS.filter(s=>s.type==="spuntino"&&okNeeds(s));
   let fi=0,prevC=null,prevS=null;
@@ -266,7 +268,7 @@ function stockOpts(sel){const rids=[...new Set(S.stock.filter(s=>s.where==="free
   return `<option value="">— nessuno —</option>`+rids.map(id=>{const r=R(id);const avail=stockCount(id,"freezer")-plannedK(id)+(id===sel?1:0);return `<option value="${id}"${id===sel?" selected":""}>${esc(r?r.name:id)} (${Math.max(0,avail)} in freezer)</option>`}).join("")}
 function snackOpts(type,sel){const list=SNACKS.filter(s=>s.type===type);return `<option value="">— nessuno —</option>`+list.map(s=>`<option value="${s.id}"${s.id===sel?" selected":""}>${esc(s.name)}${s.needs&&!stockCount(s.needs)?" (serve farla)":""} · ${s.protein} g</option>`).join("")}
 function fruitOpts(sel){const m=weekMonth();const list=FRUITS.slice().sort((a,b)=>b.months.includes(m)-a.months.includes(m));return list.map(f=>`<option value="${f.id}"${f.id===sel?" selected":""}>${esc(f.label)}${f.months.includes(m)?"":" (fuori stagione)"}</option>`).join("")}
-function renderCostBox(el){const c=costOf(shopItems(),new Set(S.have));el.innerHTML=`<div><div class="eyebrow">Spesa stimata alla Coop</div><div class="big num">${euroR(c.min,c.max)}</div></div><div class="small muted" style="max-width:34ch">pasti, colazioni e spuntini${c.unknown?` · ${c.unknown} articoli senza prezzo`:""} · esclusi quelli già in casa</div>`}
+function renderCostBox(el){const c=costOf(shopItems(),new Set([...S.have,...(S.pantry||[])]));el.innerHTML=`<div><div class="eyebrow">Spesa stimata alla Coop</div><div class="big num">${euroR(c.min,c.max)}</div></div><div class="small muted" style="max-width:34ch">pasti, colazioni e spuntini${c.unknown?` · ${c.unknown} articoli senza prezzo`:""} · esclusi quelli già in casa</div>`}
 function bar(label,val,unit,lo,hi,max){const pct=Math.min(100,val/max*100);const low=val<lo,high=val>hi;return `<div class="daybar"><div class="track"><div class="band" style="left:${lo/max*100}%;width:${(hi-lo)/max*100}%"></div><div class="fill${low||high?" low":""}" style="width:${pct}%"></div></div><div class="txt"><span>${label}</span><b class="num">${Math.round(val)} ${unit}</b></div></div>`}
 function renderVariety(){
   const pl=weekPlants(S.week,S.addons),fam=[...weekFamilies(S.week)],oily=weekOily(S.week);
@@ -468,21 +470,30 @@ document.getElementById("regen").addEventListener("click",e=>{
 /* ============ VISTA SPESA ============ */
 let editingPrice=null;
 function renderShop(){
-  const items=shopItems(),have=new Set(S.have),todo=items.filter(i=>!have.has(i.k)).length;
+  const all=shopItems(),pantry=new Set(S.pantry||[]),have=new Set(S.have);
+  const items=all.filter(i=>!pantry.has(i.k)),inPantry=all.filter(i=>pantry.has(i.k));
+  const todo=items.filter(i=>!have.has(i.k)&&i.r!=="Basi").length;
   renderCostBox(document.getElementById("shopCost"));
   const prev=S.history[0];
   document.getElementById("shopDiff").innerHTML=prev?(()=>{const cur=shopKeys(S.week,S.addons);const old=new Set(prev.keys);const nw=[...cur].filter(k=>!old.has(k)).length;return `<div class="infobox small">Rispetto alla settimana precedente: <b>${nw} ingredienti nuovi</b> su ${cur.size}.</div>`})():"";
-  let h=`<div class="eyebrow">${todo} da comprare · ${items.length-todo} già in casa</div>`;
+  const m=weekMonth();const fruitSwap=i=>i.src.includes("frutta")?`<select class="swap" data-swap="${esc(i.k)}" aria-label="Sostituisci ${esc(i.n)}"><option value="">non l'hai presa? sostituisci con…</option>${FRUITS.slice().sort((a,b)=>b.months.includes(m)-a.months.includes(m)).filter(f=>f.n.toLowerCase()!==i.k).map(f=>`<option value="${f.id}">${esc(f.label)}${f.months.includes(m)?"":" (fuori stagione)"}</option>`).join("")}</select>`:"";
+  let h=`<div class="eyebrow">${todo} da comprare · ${items.filter(i=>have.has(i.k)).length} già in casa questa settimana${inPantry.length?` · ${inPantry.length} in dispensa`:""}</div>`;
   REPARTI.forEach(rep=>{const its=items.filter(i=>i.r===rep);if(!its.length)return;
     h+=`<div class="rep">${rep==="Basi"?"Basi: probabilmente le hai già (non nel costo)":rep}</div>`+its.map(i=>{const c=rep==="Basi"?null:itemCost(i);const e=priceEntry(i.n);
       return `<div class="item${have.has(i.k)?" have":""}"><input type="checkbox" id="s-${esc(i.k)}" data-k="${esc(i.k)}" ${have.has(i.k)?"checked":""}><label for="s-${esc(i.k)}">${esc(i.n)}</label><span class="qty">${esc(mergeQ(i.q))}</span>
-      <div class="src"><span>${esc(i.src.join(" · "))}</span>${rep==="Basi"?"":`<button class="price" type="button" data-pk="${esc(i.k)}">${c?`${euroD(c.min,c.max)}${c.e.bulk?"":` · ${c.packs} conf.`}`:"aggiungi prezzo"}</button>`}</div>
+      <div class="src"><span>${esc(i.src.join(" · "))}</span><span class="row" style="gap:10px">${rep==="Basi"?"":`<button class="price" type="button" data-pk="${esc(i.k)}">${c?`${euroD(c.min,c.max)}${c.e.bulk?"":` · ${c.packs} conf.`}`:"aggiungi prezzo"}</button>`}<button class="linkbtn" type="button" data-pan="${esc(i.k)}">in dispensa</button></span></div>
+      ${fruitSwap(i)?`<div class="src">${fruitSwap(i)}</div>`:""}
       ${editingPrice===i.k?`<div class="priceedit"><label>Confezione<input type="text" id="pe-size" value="${e?esc(e.unit==="pack"?"1":`${e.size} ${e.unit}`):""}" placeholder="500 g"></label><label>Prezzo €<input type="number" step="0.01" min="0" id="pe-price" value="${e?((e.min+e.max)/2).toFixed(2):""}"></label><button class="btn sm" type="button" id="pe-save">Salva</button></div>`:""}</div>`}).join("")});
-  if(!items.length)h+=`<p class="muted" style="margin-top:8px">La settimana è vuota.</p>`;
+  if(!all.length)h+=`<p class="muted" style="margin-top:8px">La settimana è vuota.</p>`;
+  if(inPantry.length)h+=`<div class="rep">In dispensa: non in lista e non nel costo</div><p class="small muted" style="margin:2px 0 6px">Scorte che durano settimane. Controlla di averne abbastanza; quando finiscono tocca "finito" e tornano nella lista.</p>`+inPantry.map(i=>`<div class="item have"><span></span><label>${esc(i.n)}</label><span class="qty">${esc(mergeQ(i.q))}</span><div class="src"><span>serve per: ${esc(i.src.join(" · "))}</span><button class="linkbtn" type="button" data-unpan="${esc(i.k)}">finito</button></div></div>`).join("");
   h+=`<p class="small muted" style="margin-top:12px">${PRICE_SOURCE}</p>`;
   const el=document.getElementById("shop");el.innerHTML=h;
   el.querySelectorAll("input[type=checkbox]").forEach(cb=>cb.addEventListener("change",()=>{const s=new Set(S.have);cb.checked?s.add(cb.dataset.k):s.delete(cb.dataset.k);S.have=[...s];save();renderShop()}));
   el.querySelectorAll("[data-pk]").forEach(b=>b.addEventListener("click",()=>{editingPrice=editingPrice===b.dataset.pk?null:b.dataset.pk;renderShop()}));
+  el.querySelectorAll("[data-pan]").forEach(b=>b.addEventListener("click",()=>{S.pantry=[...new Set([...(S.pantry||[]),b.dataset.pan])];save();toast("In dispensa: non comparirà più nella lista finché non tocchi \"finito\"");renderShop()}));
+  el.querySelectorAll("[data-unpan]").forEach(b=>b.addEventListener("click",()=>{S.pantry=(S.pantry||[]).filter(k=>k!==b.dataset.unpan);save();toast("Tornato nella lista della spesa");renderShop()}));
+  el.querySelectorAll("[data-swap]").forEach(sel=>sel.addEventListener("change",()=>{if(!sel.value)return;const from=sel.dataset.swap;let n=0;
+    S.week.forEach(d=>["col","spu"].forEach(t=>{const x=d.sn&&d.sn[t];if(x&&x.f&&FRT(x.f)&&FRT(x.f).n.toLowerCase()===from){x.f=sel.value;n++}}));save();toast(`Sostituita in ${n} ${n===1?"spuntino":"spuntini"}`);renderShop()}));
   const ps=el.querySelector("#pe-save");ps&&ps.addEventListener("click",()=>{const c=canon(el.querySelector("#pe-size").value||"1");const p=parseFloat(String(el.querySelector("#pe-price").value).replace(",","."));
     if(!c||!(p>=0)){toast("Scrivi confezione (es. 500 g) e prezzo");return}
     const old=priceEntry(editingPrice)||{};S.prices[editingPrice]={size:c.n,unit:c.u,min:p,max:p,bulk:!!old.bulk};editingPrice=null;save();toast("Prezzo salvato");renderShop()});
@@ -500,7 +511,7 @@ function renderExtras(){
 document.getElementById("addExtra").addEventListener("click",()=>{S.extras.push({q:"",n:"",r:"Ortofrutta"});save();renderExtras()});
 document.getElementById("clearHave").addEventListener("click",()=>{S.have=[];save();renderShop()});
 document.getElementById("copyShop").addEventListener("click",()=>{
-  const have=new Set(S.have),items=shopItems().filter(i=>!have.has(i.k));const c=costOf(items);
+  const have=new Set([...S.have,...(S.pantry||[])]),items=shopItems().filter(i=>!have.has(i.k));const c=costOf(items);
   const txt=REPARTI.map(rep=>{const its=items.filter(i=>i.r===rep);return its.length?rep.toUpperCase()+"\n"+its.map(i=>`- ${i.n}${i.q.length?" ("+mergeQ(i.q)+")":""}`).join("\n"):""}).filter(Boolean).join("\n\n")+`\n\nStima Coop: ${euroR(c.min,c.max)}`;
   const fb=document.getElementById("copyFallback");const fail=()=>{fb.hidden=false;fb.value=txt;fb.focus();fb.select();toast("Seleziona e copia dal riquadro")};
   try{navigator.clipboard.writeText(txt).then(()=>toast("Lista copiata"),fail)}catch(e){fail()}

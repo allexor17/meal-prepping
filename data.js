@@ -7,7 +7,7 @@
  oily: pesce azzurro (omega-3 EPA/DHA) · spicy: piccante (mai proposto)
  store (dolci): giorni in dispensa / giorni in frigo / mesi in freezer
  sugar: zuccheri aggiunti per pezzo (g) */
-const LIB_VERSION=5;
+const LIB_VERSION=6;
 const REPARTI=["Ortofrutta","Pesce","Frigo","Surgelati","Dispensa","Panetteria","Basi"];
 function M(r){if(Array.isArray(r))return r;if(r==="all")return[1,2,3,4,5,6,7,8,9,10,11,12];const[a,b]=r.split("-").map(Number);const o=[];let m=a;for(;;){o.push(m);if(m===b)break;m=m%12+1}return o}
 function I(list){return list.map(s=>{const[q,n,r]=s.split("|");return{q,n,r}})}
@@ -44,6 +44,11 @@ const LIB=[
 {id:"quinoa",name:"Quinoa",role:"base",family:"quinoa",portions:5,protein:8,kcal:203,prepMin:5,cookMin:15,equip:"fuochi",fridgeDays:4,freezer:true,months:M("all"),
  ing:I(["275 g|quinoa|Dispensa"]),steps:["Sciacqua bene la quinoa in un colino (toglie le saponine amare).","Acqua salata doppia rispetto al volume, 15 minuti col coperchio.","Sgrana e stendi a raffreddare."],
  cons:"Frigo 4 giorni, freezer 3 mesi.",par:"Col coperchio, da sola.",think:"È una delle poche fonti vegetali con tutti gli aminoacidi essenziali in buone proporzioni."},
+
+{id:"bulgur",name:"Bulgur",role:"base",family:"frumento",portions:5,protein:7,kcal:190,prepMin:5,cookMin:12,equip:"fuochi",fridgeDays:4,freezer:true,months:M("all"),
+ ing:I(["275 g|bulgur|Dispensa"]),steps:["Porta a bollore acqua salata (due volte il volume del bulgur).","Versa il bulgur, 10–12 minuti a fuoco basso col coperchio, poi 5 minuti a fuoco spento.","Sgrana con la forchetta e stendi a raffreddare."],
+ cons:"Frigo 4 giorni, freezer 3 mesi.",par:"Pronto in un quarto d'ora.",think:"Il bulgur è grano duro precotto e spezzato: è frumento, come farro e couscous. Per variare davvero, abbinalo a un cereale di un'altra famiglia.",
+ draw:{vessel:"bowl",bowl:"#5B4A3A",base:"#C9A064",base2:"#B88E52",pieces:[{t:"grain",c:"#D6B27A",n:130,s:.028}]}},
 
 /* ---------- CONTORNI ---------- */
 {id:"verd_aut",name:"Verdure d'autunno al forno",role:"side",portions:4,protein:4,kcal:170,prepMin:15,cookMin:40,equip:"forno",temp:200,fridgeDays:4,freezer:false,months:M("9-12"),
@@ -387,7 +392,9 @@ const BOOSTERS=[
  {id:"tofu_aff",name:"Tofu affumicato a cubetti",protein:10,kcal:95,ing:{q:"60 g",n:"tofu affumicato",r:"Frigo"}},
  {id:"parm",name:"Parmigiano",protein:7,kcal:78,ing:{q:"20 g",n:"parmigiano grattugiato",r:"Frigo"}},
  {id:"ceci",name:"Ceci",protein:7,kcal:120,ing:{q:"100 g",n:"ceci",r:"Dispensa"}},
- {id:"crauti",name:"Crauti o verdure fermentate",protein:0,kcal:10,ferm:true,home:true,ing:null}
+ {id:"crauti",name:"Crauti o verdure fermentate",protein:0,kcal:10,ferm:true,home:true,ing:null},
+ {id:"germogli",name:"Germogli nell'insalata",protein:1,kcal:10,ing:{q:"30 g",n:"germogli misti",r:"Ortofrutta"}},
+ {id:"chia",name:"Semi di chia",protein:2,kcal:50,ing:{q:"10 g",n:"semi di chia",r:"Dispensa"}}
 ];
 
 /* ============ FRUTTA DI STAGIONE ============ */
@@ -410,6 +417,8 @@ const FRUITS=[
  {id:"nespole",label:"150 g di nespole",n:"nespole",q:"150 g",kcal:70,months:M("5-6"),pair:"con mandorle"},
  {id:"melone",label:"200 g di melone",n:"melone",q:"200 g",kcal:65,months:M("6-8"),pair:"con feta o yogurt"},
  {id:"anguria",label:"250 g di anguria",n:"anguria",q:"250 g",kcal:75,months:M("7-8"),pair:"con feta e menta"},
+ {id:"fichi_india",label:"2 fichi d'India",n:"fichi d'India",q:"2",kcal:60,months:M("8-10"),pair:"con yogurt o ricotta; sbucciali con coltello e forchetta per le spine"},
+ {id:"banana",label:"1 banana",n:"banane",q:"1",kcal:95,months:M("all"),auto:false,pair:"con burro di arachidi o nel porridge. Non è di stagione in Italia: viene da lontano tutto l'anno"},
  {id:"mirtilli",label:"125 g di mirtilli",n:"mirtilli",q:"125 g",kcal:70,months:M("6-9"),pair:"nello yogurt o nel porridge"}
 ];
 
@@ -455,6 +464,8 @@ const SNACKS=[
   ing:I(["170 g|yogurt greco 0%|Frigo","30 g|fiocchi d'avena|Dispensa","10 g|noci|Dispensa"]),why:"Proteine alte già a colazione: la sazietà dura fino a pranzo."},
  {id:"c_porridge",type:"colazione",name:"Porridge con bevanda di soia, semi e frutta",kcal:275,protein:15,fruit:true,
   ing:I(["40 g|fiocchi d'avena|Dispensa","200 ml|bevanda di soia|Frigo","10 g|semi di zucca|Dispensa"]),why:"I beta-glucani dell'avena rallentano l'assorbimento degli zuccheri della frutta."},
+ {id:"c_porridge_avena",type:"colazione",name:"Porridge con bevanda d'avena, chia e frutta",kcal:290,protein:10,fruit:true,
+  ing:I(["40 g|fiocchi d'avena|Dispensa","200 ml|bevanda di avena|Frigo","10 g|semi di chia|Dispensa"]),why:"Più cremoso di quello con la soia, ma con meno proteine: abbinalo a uno spuntino proteico."},
  {id:"c_uova",type:"colazione",name:"Pane integrale tostato, 2 uova sode e frutta",kcal:300,protein:18,fruit:true,eggs:2,
   ing:I(["60 g|pane integrale|Panetteria","2|uova|Frigo"]),why:"Colazione salata: le uova sode si preparano la domenica e durano 7 giorni col guscio."},
  {id:"c_kefir",type:"colazione",name:"Kefir con avena, noci e frutta",kcal:300,protein:12,fruit:true,ferm:true,
@@ -463,6 +474,8 @@ const SNACKS=[
   ing:I(["60 g|pane integrale|Panetteria","125 g|yogurt greco 0%|Frigo"]),why:"Il dolce della mattina, senza zucchero aggiunto."},
  {id:"s_yogurt",type:"spuntino",name:"Yogurt greco e frutta",kcal:100,protein:17,fruit:true,ferm:true,
   ing:I(["170 g|yogurt greco 0%|Frigo"]),why:"Il modo più semplice per aggiungere 17 g di proteine e un fermentato."},
+ {id:"s_yogurt_magro",type:"spuntino",name:"Yogurt magro bianco, semi di chia e frutta",kcal:115,protein:9,fruit:true,ferm:true,
+  ing:I(["150 g|yogurt magro bianco|Frigo","10 g|semi di chia|Dispensa"]),why:"Lo yogurt magro ha meno della metà delle proteine del greco: i semi di chia aggiungono fibre e omega-3 vegetali."},
  {id:"s_yogurt_soia",type:"spuntino",name:"Yogurt di soia, semi di zucca e frutta",kcal:120,protein:8,fruit:true,ferm:true,
   ing:I(["125 g|yogurt di soia|Frigo","10 g|semi di zucca|Dispensa"]),why:"Scegli quello con fermenti vivi e senza zuccheri aggiunti."},
  {id:"s_kefir",type:"spuntino",name:"Kefir e frutta",kcal:125,protein:7,fruit:true,ferm:true,
@@ -497,7 +510,7 @@ const PLANT={
  "orzo perlato":"orzo","riso integrale":"riso","riso":"riso","farina di mais per polenta":"mais","grano saraceno":"grano saraceno","miglio":"miglio","quinoa":"quinoa","fiocchi d'avena":"avena",
  "ceci":"ceci","hummus":"ceci","lenticchie rosse decorticate":"lenticchie","lenticchie secche":"lenticchie","fagioli borlotti":"fagioli","fagioli cannellini":"fagioli","piselli surgelati":"piselli",
  "tofu naturale":"soia","tofu affumicato":"soia","tempeh":"soia","edamame surgelati":"soia","bevanda di soia":"soia","yogurt di soia":"soia",
- "noci":"noci","mandorle":"mandorle","crema 100% nocciole":"nocciole","burro di arachidi":"arachidi","semi di zucca":"semi di zucca","semi di girasole":"girasole","semi di sesamo":"sesamo",
+ "noci":"noci","mandorle":"mandorle","semi di chia":"chia","germogli misti":"germogli","bulgur":"frumento","bevanda di avena":"avena","yogurt magro bianco":null,"crema 100% nocciole":"nocciole","burro di arachidi":"arachidi","semi di zucca":"semi di zucca","semi di girasole":"girasole","semi di sesamo":"sesamo",
  "latte di cocco":"cocco","datteri":"datteri","cacao amaro":"cacao","cioccolato fondente 85%":"cacao","olive nere":"olive","capperi":"capperi",
  "pelati":"pomodoro","passata di pomodoro":"pomodoro","concentrato di pomodoro":"pomodoro","pomodori maturi":"pomodoro",
  "spinaci surgelati":"spinaci","spinaci freschi":"spinaci","cipolla rossa":"cipolla","cipolla":"cipolla","cipollotti":"cipolla","zucca":"zucca","patate":"patata",
