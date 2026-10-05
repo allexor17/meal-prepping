@@ -85,6 +85,9 @@ const PR_LABEL={breve:"da consumare presto",medio:"nel medio termine",lungo:"sen
 function invFind(ingName){return(S.inventory||[]).find(it=>matchNames(it.name,ingName))}
 function recipeInv(r){const used=[];let sc=0;ingOf(r).forEach(i=>{if(i.r==="Basi")return;const it=invFind(i.n);if(it&&!used.includes(it)){used.push(it);sc+=PR_W[effPriority(it)]}});return{sc,used}}
 function recipesUsing(it,onlySeason){const m=weekMonth();const rs=S.recipes.filter(r=>!r.spicy&&ingOf(r).some(i=>matchNames(it.name,i.n)));rs.sort((a,b)=>inSeason(b,m)-inSeason(a,m));return onlySeason?rs.filter(r=>inSeason(r,m)):rs}
+function srcOf(r){if(!r)return[];if(r.src)return r.src;if(MAIN_SRC[r.id])return MAIN_SRC[r.id];const o=new Set();ingOf(r).forEach(i=>{const n=String(i.n).toLowerCase();if(/\buov[ao]\b/.test(n)){if(parseFloat(i.q)>=3)o.add("uova");return}SRC_KEYS.forEach(([k,v])=>{if(n.includes(k))o.add(v)})});return[...o]}
+const srcClash=(r,list)=>{const a=srcOf(r);return list.filter(x=>x&&x!==r&&srcOf(x).some(s=>a.includes(s)))};
+const mainFam=r=>SRC_FAM[srcOf(r)[0]]||"altro";
 function snacksUsing(it){return SNACKS.filter(x=>x.ing.some(i=>matchNames(it.name,i.n)))}
 function isBasi(it){return S.recipes.some(r=>r.ing.some(i=>i.r==="Basi"&&matchNames(it.name,i.n)))}
 function weekUsesInv(it){let u=false;eachUse(S.week,r=>{if(!u&&ingOf(r).some(i=>matchNames(it.name,i.n)))u=true});S.addons.forEach(id=>{const r=R(id);if(r&&ingOf(r).some(i=>matchNames(it.name,i.n)))u=true});
@@ -188,6 +191,11 @@ function fillSnacks(week,month,rnd,keep){
 function addBoosters(week,rnd){
   const order=["yogurt_greco","uova","edamame","tofu_aff","parm","ceci","feta"];let o=Math.floor(rnd()*order.length),n=0;
   week.forEach(d=>{let g=0;while(dayNut(d).p<PROT_MIN&&g++<3){let meal=slotNut(d.p).p<=slotNut(d.c).p?"p":"c";if(d[meal].x.length>=1)meal=meal==="p"?"c":"p";if(d[meal].x.length>=2)break;d[meal].x.push(order[o++%order.length]);n++}});
+  // giornate corte di calorie: un'aggiunta sostanziosa (senza sforare le proteine)
+  const kOrder=shuffle(["ceci","feta","edamame","uova"],rnd);
+  week.forEach(d=>{let g=0;while(dayNut(d).k<KCAL_TARGET-150&&g++<2){const used=new Set([...d.p.x,...d.c.x]),p=dayNut(d).p;
+    const id=kOrder.find(x=>!used.has(x)&&p+B(x).protein<=PROT_MAX+5);if(!id)break;
+    let meal=slotNut(d.p).k<=slotNut(d.c).k?"p":"c";if(d[meal].x.length>=2)meal=meal==="p"?"c":"p";if(d[meal].x.length>=2)break;d[meal].x.push(id);n++}});
   return n;
 }
 function generateWeek(weekStart,seed,opts={}){
@@ -209,7 +217,7 @@ function generateWeek(weekStart,seed,opts={}){
   for(let att=0;att<350;att++){
     const chosen=[],ex=new Set();let por=0,overlap=0;const want=rnd()<.85?4:3;
     if(hasOily&&rnd()<.85){const o=pick(mains.filter(r=>r.oily),ex);if(o){chosen.push(o);ex.add(o.id);por+=o.portions;if(prevIds.has(o.id))overlap++}}
-    while((por<10||chosen.length<want)&&chosen.length<5){const r=pick(mains,ex);if(!r)break;ex.add(r.id);if(prevIds.has(r.id)){if(overlap>=1)continue;overlap++}chosen.push(r);por+=r.portions}
+    while((por<10||chosen.length<want)&&chosen.length<5){const r=pick(mains.filter(m=>!srcClash(m,chosen).length),ex);if(!r)break;ex.add(r.id);if(prevIds.has(r.id)){if(overlap>=1)continue;overlap++}chosen.push(r);por+=r.portions}
     if(por<10)continue;
     let tokens=[];chosen.forEach(r=>{for(let i=0;i<r.portions;i++)tokens.push(r)});
     tokens.sort((a,b)=>(a.freezer-b.freezer)||(a.fridgeDays-b.fridgeDays)||(rnd()-.5));
@@ -222,7 +230,7 @@ function generateWeek(weekStart,seed,opts={}){
       if(k<0){valid=false;break}slots[i]=rest.splice(k,1)[0]}
     if(!valid)continue;
     // basi: due famiglie diverse
-    const b1=pick(bases,new Set());if(!b1)continue;const b2=pick(bases.filter(b=>b.family!==b1.family),new Set([b1.id]));if(!b2)continue;const bList=[b1,b2];
+    const okB=bases.filter(b=>!srcClash(b,chosen).length);const b1=pick(okB,new Set());if(!b1)continue;const b2=pick(okB.filter(b=>b.family!==b1.family),new Set([b1.id]));if(!b2)continue;const bList=[b1,b2];
     const sx=new Set(),sList=[];const cooked=sides.filter(s=>s.equip!=="nessuno"),raw=sides.filter(s=>s.equip==="nessuno");
     const s1=pick(cooked.length?cooked:sides,sx);if(s1){sList.push(s1);sx.add(s1.id)}const s2=pick(raw.length?raw:sides,sx)||pick(sides,sx);if(s2){sList.push(s2);sx.add(s2.id)}
     const fw1=s1?s1.name.split(" ")[0]:"";const s3=pick(cooked.filter(s=>s.name.split(" ")[0]!==fw1&&(!s1||s.equip!==s1.equip||s.freezer)),sx)||pick(sides.filter(s=>s.name.split(" ")[0]!==fw1),sx);if(s3){sList.push(s3);sx.add(s3.id)}
@@ -249,9 +257,11 @@ function generateWeek(weekStart,seed,opts={}){
     const mealLow=nut.reduce((a,n)=>a+Math.max(0,MEAL_PROT_MIN-n.mp),0);
     const favs=[...ids].filter(id=>R(id).fav).length,rec=[...ids].reduce((a,id)=>a+(recent.get(id)||0),0);
     const cost=costOf(aggregate(week,[],[]));const costMid=(cost.min+cost.max)/2;
+    const mainsW=[...ids].map(R).filter(r=>r.role==="main"),famL=mainsW.map(mainFam),famDup=famL.length-new Set(famL).size;
+    const baseClash=[...ids].map(R).filter(r=>r.role==="base"&&srcClash(r,mainsW).length).length;
     const usedInv=new Set();ids.forEach(id=>(invUse.get(id)||{used:[]}).used.forEach(it=>usedInv.add(it)));const invBonus=[...usedInv].reduce((a,it)=>a+PR_W[effPriority(it)],0);
     const urgentMiss=urgent.filter(it=>![...ids].some(id=>ingOf(R(id)).some(i=>matchNames(it.name,i.n)))).length;
-    const score=(urgentMiss*15-invBonus*6)*focus+noOily*25+famRepeat*8+lentils*6+overuse*8+samey*7+boosts*3+kDev/12+pShort*2+mealLow*.8-Math.min(plants,36)*3
+    const score=(urgentMiss*15-invBonus*6)*focus+noOily*25+famDup*6+baseClash*8+famRepeat*8+lentils*6+overuse*8+samey*7+boosts*3+kDev/12+pShort*2+mealLow*.8-Math.min(plants,36)*3
       +Math.max(0,sunday.length-8)*12+Math.max(0,temps-2)*12+Math.max(0,ovenMin-120)*.3+Math.max(0,handMin-100)*.4+consec*3-favs*2+rec*1.5+sim*20+costMid*.3+rnd();
     if(!best||score<best.score)best={score,week,sim};
   }
@@ -318,6 +328,8 @@ function renderVariety(){
     <div class="vitem ${pl.set.size>=PLANTS_TARGET?"ok":"no"}"><span class="eyebrow">Piante diverse</span><span class="big num">${pl.set.size} / ${PLANTS_TARGET}</span><span class="sub">regola dell'American Gut Project</span></div>
     <div class="vitem ${fermDays>=5?"ok":"no"}"><span class="eyebrow">Fermentati</span><span class="big num">${fermDays} / 5 giorni</span><span class="sub">almeno uno al giorno</span></div>
     <div class="vitem ${fam.length>=2&&(!prevFam.size||famNew>0)?"ok":"no"}"><span class="eyebrow">Cereali</span><span class="big">${fam.map(f=>FAMILY_LABEL[f]||f).join(" + ")||"—"}</span><span class="sub">${esc(bases.join(", "))}${prevFam.size?` · ${famNew?"diversi dalla settimana prima":"uguali alla settimana prima"}`:""}</span></div>
+    ${(()=>{const ms=[...new Set(S.week.flatMap(d=>[d.p.m,d.c.m]).filter(Boolean))].map(R).filter(Boolean);const dup=ms.some(r=>srcClash(r,ms).length);const fams=new Set(ms.map(mainFam));
+      return `<div class="vitem wide ${dup?"no":"ok"}"><span class="eyebrow">Fonti proteiche dei principali</span><span class="big">${ms.length} piatti · ${fams.size} ${fams.size===1?"famiglia":"famiglie"}</span><span class="sub">${esc(ms.map(r=>`${r.name}: ${srcOf(r).join(" + ")||"?"}`).join(" · "))}${dup?" · due piatti hanno la stessa fonte":""}</span></div>`})()}
     <div class="vitem ${oily.length?"ok":"no"}"><span class="eyebrow">Pesce azzurro</span><span class="big">${oily.length?"sì":"no"}</span><span class="sub">${oily.length?esc(oily.join(", ")):"aggiungi sgombro o sardine: omega-3"}</span></div>
    </div>
    ${pl.set.size<PLANTS_TARGET?`<div class="infobox small"><b>Per arrivare a ${PLANTS_TARGET}:</b> ${varietyTips(pl.set).join(" · ")}</div>`:""}
@@ -490,6 +502,7 @@ function renderChecks(){
     if(Math.abs(n.k-KCAL_TARGET)>200)warns.push(`<b>${DAYS[i]}</b>: ${n.k} kcal, ${n.k>KCAL_TARGET?"sopra":"sotto"} le ${KCAL_TARGET} di più di 200.`)});
   S.week.forEach((d,i)=>["col","spu"].forEach(t=>{const s=SN(d.sn[t].id);if(s&&s.needs&&!stockCount(s.needs)&&!S.addons.includes(s.needs))warns.push(`<b>${DAYS[i]}</b>: "${esc(s.name)}" richiede ${esc(R(s.needs).name.toLowerCase())}, che non hai in casa. Mettila in programma dalla sezione Dolci.`)}));
   [...new Set(S.week.flatMap(d=>[d.p.k,d.c.k]).filter(Boolean))].filter(id=>plannedK(id)>stockCount(id,"freezer")).forEach(id=>warns.push(`<b>${esc((R(id)||{}).name||id)}</b>: in settimana ne usi ${plannedK(id)}, in freezer ne hai ${stockCount(id,"freezer")}.`));
+  {const ms=[...new Set(S.week.flatMap(d=>[d.p.m,d.c.m]).filter(Boolean))].map(R).filter(Boolean);const seen=new Set();ms.forEach(r=>srcClash(r,ms).forEach(x=>{const k=[r.id,x.id].sort().join();if(seen.has(k))return;seen.add(k);const sh=srcOf(r).filter(s=>srcOf(x).includes(s));warns.push(`<b>${esc(r.name)}</b> e <b>${esc(x.name)}</b> hanno la stessa fonte proteica (${esc(sh.join(", "))}): cambiane uno toccando il riquadro.`)}))}
   const wEnd=iso(addDays(S.weekStart,4));(S.inventory||[]).filter(it=>(it.exp&&it.exp<=wEnd)||effPriority(it)==="breve").filter(it=>!weekUsesInv(it)).forEach(it=>{const rs=recipesUsing(it,true).slice(0,3).map(r=>r.name.toLowerCase());warns.push(`<b>${esc(it.name)}</b>${it.exp?` scade il ${fmtDate(new Date(it.exp+"T12:00:00"))}`:" è da consumare presto"} e non è nella settimana. ${rs.length?`Ricette di stagione che lo usano: ${esc(rs.join(", "))}. Prova "Proponi la settimana con quello che ho" nella sezione Casa.`:"Nessuna ricetta di stagione lo usa: aggiungilo a un pasto o crea una ricetta dalla sezione Casa."}`)});
   const prev=S.history[0];
   if(prev){const sim=jaccard(shopKeys(S.week,S.addons),new Set(prev.keys));if(sim>.6)warns.push(`La spesa è molto simile a quella della settimana precedente (${Math.round(sim*100)}% di ingredienti in comune).`)}

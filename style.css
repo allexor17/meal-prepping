@@ -270,3 +270,4 @@ select{max-width:100%;text-overflow:ellipsis}
 .tile .sub.home{color:var(--fridge)}
 @media (max-width:520px){.invrow{grid-template-columns:1fr}}
 .chip.sm.off{opacity:.6}
+.vitem.wide{grid-column:1/-1}

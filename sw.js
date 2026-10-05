@@ -1,5 +1,5 @@
 // Salva l'app sul telefono per usarla offline. Cambia VERSION a ogni aggiornamento.
-const VERSION = "mealprep-v10";
+const VERSION = "mealprep-v11";
 const CORE = ["./", "./index.html", "./style.css", "./data.js", "./prices.js", "./app.js", "./extras.js", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
