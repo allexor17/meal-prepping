@@ -181,61 +181,164 @@ function quizOptions(it, correct) {
 }
 
 // ───────────────────────────── COMPATIBILITÀ ─────────────────────────────
-const SOLO = {
-  lana: "La lana vuole il suo programma, freddo e quasi immobile: con altri capi o infeltrisce o gli altri restano sporchi.",
-  mano: "Seta e capi da lavare a mano reggono solo il minimo indispensabile di movimento: insieme agli altri si rovinerebbero.",
-  piumini: "Il piumino ha bisogno di spazio per gonfiarsi e di risciacqui abbondanti: va da solo.",
-  stinge: "I capi che stingono vanno da soli: il loro colorante libero finirebbe sugli altri.",
-  pesante: "Terra, grasso e peli si ridepositerebbero sugli altri capi: questo carico va da solo.",
-  nolav: "Questi capi non vanno in lavatrice."
-};
-const PAIRS = {
-  "bianchi|chiari":          ["ok",   "Si possono unire a 40°C con un detersivo liquido o per colorati: rinunci al 60°C e agli sbiancanti ottici, che altererebbero i pastelli."],
-  "bianchi|spugna_chiara":   ["ok",   "Si possono unire a 60°C: niente ammorbidente per nessuno, e i capi lisci prenderanno qualche pelucchio dalla spugna."],
-  "chiari|spugna_chiara":    ["warn", "Possibile a 40°C, ma la spugna lascia pelucchi e rinunci al 60°C igienizzante."],
-  "chiari|colorati":         ["warn", "Possibile a 30°C con un acchiappacolore e un detersivo per colorati, se nessun capo è nuovo o di colore intenso."],
-  "colorati|scuri":          ["warn", "Possibile a 30°C, al rovescio, con un acchiappacolore: gli scuri potrebbero prendere qualche pelucchio."],
-  "colorati|spugna_col":     ["warn", "Possibile a 40°C senza ammorbidente: la spugna lascerà pelucchi sui capi lisci."],
-  "scuri|spugna_col":        ["warn", "Possibile, ma sugli scuri ogni pelucchio della spugna si vedrà."],
-  "spugna_chiara|spugna_col":["warn", "Possibile se i colori della spugna sono solidi: fai prima il test del cotton fioc sugli asciugamani colorati."],
-  "delicati|sport":          ["ok",   "Vanno d'accordo: programma delicati o sintetici a 30°C, senza ammorbidente."],
-  "colorati|sport":          ["warn", "Possibile a 30°C senza ammorbidente: il cotone lascerà qualche pelucchio sui tecnici."],
-  "scuri|sport":             ["warn", "Possibile a 30°C senza ammorbidente, al rovescio."],
-  "chiari|sport":            ["warn", "Possibile a 30°C senza ammorbidente, se i capi sportivi non sono di colore intenso."],
-  "chiari|delicati":         ["warn", "Possibile, ma tutto il carico diventa 'delicati': poca azione meccanica, e i capi più sporchi potrebbero non venire puliti. I delicati in retina."],
-  "colorati|delicati":       ["warn", "Possibile, ma tutto il carico diventa 'delicati': poca azione meccanica, e i capi più sporchi potrebbero non venire puliti. I delicati in retina."],
-  "delicati|scuri":          ["warn", "Possibile, ma tutto il carico diventa 'delicati': poca azione meccanica. I delicati in retina, gli scuri al rovescio."],
-  "bianchi|delicati":        ["warn", "Possibile solo se i delicati sono bianchi anche loro: il carico scende a 30°C e perdi l'igiene del bianco."],
-  "bianchi|colorati":        ["no",   "I bianchi assorbirebbero il colorante libero e ingrigirebbero, e dovresti rinunciare al 60°C e all'ossigeno attivo."],
-  "bianchi|scuri":           ["no",   "È la combinazione più rischiosa: gli scuri rilasciano più colorante e i bianchi lo mostrano tutto."],
-  "chiari|scuri":            ["no",   "I chiari prenderebbero il colore e i pelucchi degli scuri."],
-  "bianchi|spugna_col":      ["no",   "Gli asciugamani colorati possono stingere sui bianchi."],
-  "bianchi|sport":           ["no",   "I capi sportivi colorati possono stingere sui bianchi, e i bianchi perderebbero il 60°C."],
-  "chiari|spugna_col":       ["no",   "La spugna colorata può stingere sui chiari e li riempie di pelucchi."],
-  "colorati|spugna_chiara":  ["no",   "I colorati stingerebbero sulla spugna chiara, che vuole 60°C."],
-  "scuri|spugna_chiara":     ["no",   "Pelucchi bianchi sugli scuri e colorante sulla spugna chiara: il peggio di entrambi."],
-  "spugna_chiara|sport":     ["no",   "La spugna vuole 60°C e perde pelucchi; i tecnici reggono 30–40°C e i pelucchi li attirano."],
-  "spugna_col|sport":        ["warn", "Possibile a 40°C senza ammorbidente, ma i tecnici si riempiranno dei pelucchi della spugna."],
-  "delicati|spugna_chiara":  ["no",   "La spugna vuole 60°C e tanta azione meccanica, i delicati il contrario."],
-  "delicati|spugna_col":     ["no",   "La spugna è pesante e perde pelucchi: in un programma delicati non si lava bene e sporca i capi fragili."]
-};
-function compatPair(a, b) {
-  if (a === b) return ["ok", ""];
-  if (SOLO[a]) return ["no", SOLO[a]];
-  if (SOLO[b]) return ["no", SOLO[b]];
-  const k1 = `${a}|${b}`, k2 = `${b}|${a}`;
-  return PAIRS[k1] || PAIRS[k2] || ["warn", "Combinazione insolita: controlla bene colori e temperature."];
+// Due dimensioni indipendenti: il colore (chi può macchiare chi) e il tessuto (quale programma regge).
+// Il livello di una coppia è il peggiore dei due.
+const LEVELS = { ok: 0, lieve: 1, forte: 3, no: 99 };
+const LEVEL_NAME = { ok: "va bene", lieve: "piccolo compromesso", forte: "compromesso forte", no: "da evitare" };
+const FABRIC = { bianchi: "cot", chiari: "cot", colorati: "cot", scuri: "cot", stinge: "cot", spugna_chiara: "spu", spugna_col: "spu", sport: "sin", delicati: "del", lana: "lan", mano: "lan", piumini: "piu", pesante: "pes", nolav: "nol" };
+const DEFAULT_TONE = { bianchi: "W", chiari: "L", colorati: "C", scuri: "D", spugna_chiara: "W", spugna_col: "C", stinge: "C", sport: "C", delicati: "C", lana: "C", mano: "L", piumini: "D", pesante: "C", nolav: "C" };
+const TONE_RANK = { W: 0, L: 1, C: 2, D: 3 };
+function basketTone(k, its) {
+  if (!its || !its.length) return DEFAULT_TONE[k] || "C";
+  const t = { bianco: "W", chiaro: "L", colorato: "C", scuro: "D" };
+  return its.map(it => t[colorGroup(it)]).reduce((a, b) => TONE_RANK[b] > TONE_RANK[a] ? b : a, "W");
 }
-function compatLoad(keys) {
-  const rank = { ok: 0, warn: 1, no: 2 };
-  let worst = ["ok", ""]; const msgs = [];
-  for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
-    const r = compatPair(keys[i], keys[j]);
-    const solo = SOLO[keys[i]] ? keys[i] : SOLO[keys[j]] ? keys[j] : null;
-    if (r[1] && !msgs.some(m => m.text === r[1])) msgs.push({ level: r[0], text: r[1], a: keys[i], b: keys[j], solo });
-    if (rank[r[0]] > rank[worst[0]]) worst = r;
+const TONE_PAIRS = {
+  "W|L": ["ok",    "Capi bianchi e capi chiari stanno bene insieme a 40°C con un detersivo liquido: i pastelli non vogliono gli sbiancanti ottici della polvere."],
+  "L|C": ["lieve", "Capi chiari e capi colorati: 30°C, detersivo per colorati e un acchiappacolore. A freddo il colorante diffonde poco fuori dalla fibra."],
+  "C|D": ["lieve", "Capi colorati e capi scuri: 30°C, scuri al rovescio, un acchiappacolore."],
+  "W|C": ["forte", "I capi bianchi prendono un po' del colorante libero e col tempo ingrigiscono: 30°C, detersivo per colorati, due acchiappacolore. Ogni tanto concedi ai bianchi un lavaggio da soli a 60°C."],
+  "L|D": ["forte", "I capi chiari rischiano colore e pelucchi di quelli scuri: 30°C, scuri al rovescio, due acchiappacolore."],
+  "W|D": ["forte", "Bianchi con capi scuri è il compromesso più costoso: a 30°C con due acchiappacolore va bene ogni tanto, ma come abitudine i bianchi ingrigiscono."]
+};
+const FABRIC_PAIRS = {
+  "cot|spu": ["lieve", "Spugna e capi lisci: niente ammorbidente per nessuno, e qualche pelucchio sui capi lisci."],
+  "cot|sin": ["lieve", "Con i tecnici: niente ammorbidente per tutto il carico e centrifuga a 800, il cotone esce un po' più umido."],
+  "cot|del": ["lieve", "I delicati vanno in retina e il carico passa a Misti 30°C con centrifuga bassa: lo sporco più ostinato viene tolto un po' meno."],
+  "sin|spu": ["forte", "La spugna perde pelucchi e i tecnici li attirano; in più la spugna rinuncia ai 60°C."],
+  "del|spu": ["no",    "La spugna pesante in un programma delicato non si lava bene e riempie di pelucchi i capi fragili."],
+  "del|sin": ["ok",    "Tecnici e delicati reggono lo stesso programma: 30°C, poca centrifuga, niente ammorbidente."],
+  "lan|lan": ["ok",    "Lana e seta reggono lo stesso programma lana o a mano, freddo e lento."]
+};
+const FABRIC_SOLO = {
+  lan: "La lana vuole il suo programma quasi immobile: con altri capi infeltrisce, oppure gli altri restano sporchi. Se sono pochi capi, lavali a mano.",
+  piu: "Il piumino ha bisogno di spazio per gonfiarsi e di tanti risciacqui: va da solo.",
+  pes: "Terra, grasso, peli e scarpe sporcherebbero gli altri capi: questo carico va da solo.",
+  nol: "Questi capi non vanno in lavatrice."
+};
+const worse = (x, y) => LEVELS[y[0]] > LEVELS[x[0]] ? y : x;
+function fabricPair(fa, fb) {
+  if (fa === fb) return fa === "lan" ? FABRIC_PAIRS["lan|lan"] : ["ok", ""];
+  const k = [fa, fb].sort().join("|");
+  if (FABRIC_PAIRS[k]) return FABRIC_PAIRS[k];
+  const solo = [fa, fb].find(f => FABRIC_SOLO[f]);
+  if (solo) return ["no", FABRIC_SOLO[solo]];
+  return ["lieve", ""];
+}
+function tonePair(ta, tb) {
+  if (ta === tb) return ["ok", ""];
+  const k = [ta, tb].sort((x, y) => TONE_RANK[x] - TONE_RANK[y]).join("|");
+  return TONE_PAIRS[k] || ["lieve", ""];
+}
+function bleedPair(tb, other, to) {
+  if (other === "stinge") return ["ok", ""];
+  if (TONE_RANK[to] <= 1) return ["no", "Il colorante libero dei capi nuovi macchierebbe bianchi e chiari."];
+  if (tb === "D" && to === "D") return ["lieve", "I capi nuovi scuri stingono ancora, ma insieme agli altri scuri, a freddo e con due acchiappacolore, il colore libero non si nota."];
+  return ["forte", "Un capo nuovo di colore intenso rilascia colorante: solo a freddo, con due acchiappacolore e con colori simili."];
+}
+// a, b: chiavi delle ceste · map: capi per cesta (facoltativo)
+function compatPair(a, b, map) {
+  if (a === b) return { level: "ok", msgs: [] };
+  const ta = basketTone(a, map && map[a]), tb = basketTone(b, map && map[b]);
+  let tone;
+  if (a === "stinge") tone = bleedPair(ta, b, tb);
+  else if (b === "stinge") tone = bleedPair(tb, a, ta);
+  else tone = tonePair(ta, tb);
+  const fab = fabricPair(FABRIC[a], FABRIC[b]);
+  // terza dimensione: chi ha bisogno dei 60°C per l'igiene li perde?
+  let heat = ["ok", ""];
+  if (map && map[a] && map[b] && fab[0] !== "no") {
+    const ta60 = recTemp(a, map[a]) >= 60, tb60 = recTemp(b, map[b]) >= 60;
+    if (ta60 !== tb60) {
+      const hot = ta60 ? a : b;
+      heat = ["lieve", `La cesta «${BASKETS[hot].name}» vorrebbe 60°C per l'igiene: insieme si scende a 40°C o meno. Con l'ossigeno attivo l'igiene resta buona per l'uso quotidiano.`];
+    }
   }
-  return { level: worst[0], msgs };
+  const w = worse(worse(tone, fab), heat);
+  const msgs = [];
+  if (fab[0] === "no") msgs.push({ level: "no", text: fab[1] });
+  else {
+    if (tone[1]) msgs.push({ level: tone[0], text: tone[1] });
+    if (fab[1]) msgs.push({ level: fab[0], text: fab[1] });
+    if (heat[1]) msgs.push({ level: heat[0], text: heat[1] });
+  }
+  return { level: w[0], msgs };
+}
+function compatLoad(keys, map) {
+  let level = "ok", cost = 0; const msgs = [];
+  for (let i = 0; i < keys.length; i++) for (let j = i + 1; j < keys.length; j++) {
+    const r = compatPair(keys[i], keys[j], map);
+    if (LEVELS[r.level] > LEVELS[level]) level = r.level;
+    cost += LEVELS[r.level];
+    for (const m of r.msgs) if (!msgs.some(x => x.text === m.text)) msgs.push({ ...m, a: keys[i], b: keys[j] });
+  }
+  msgs.sort((x, y) => LEVELS[y.level] - LEVELS[x.level]);
+  return { level, msgs, cost };
+}
+// Quanto si può riempire il cestello per un carico che contiene queste ceste
+function groupCapF(keys) {
+  const f = new Set(keys.map(k => FABRIC[k]));
+  if (f.has("lan")) return keys.every(k => k === "mano") ? 0.15 : 0.25;
+  if (f.has("piu")) return 0.3;
+  if (f.has("del") || f.has("sin")) return (f.has("cot") || f.has("spu")) ? 0.5 : (f.has("del") ? 0.35 : 0.5);
+  return 1;
+}
+
+// ───────────────────────────── PIANO: MENO LAVATRICI ─────────────────────────────
+// Divide le ceste nel minor numero di lavatrici possibile, rispettando il livello di compromesso
+// scelto e la capienza del cestello. Ricerca esatta su tutti i raggruppamenti (le ceste sono al massimo 13).
+const PLAN_MODES = {
+  min:        { name: "Meno lavatrici", allow: LEVELS.forte, text: "Accetta anche i compromessi forti, come bianchi e colori insieme a 30°C con due acchiappacolore. Il minimo di acqua, energia e tempo." },
+  equilibrio: { name: "Equilibrio",     allow: LEVELS.lieve, text: "Solo piccoli compromessi: chiari con colorati, colorati con scuri, delicati in retina. I bianchi restano tra loro." },
+  cura:       { name: "Massima cura",   allow: LEVELS.ok,    text: "Nessun compromesso: ogni capo nel suo programma ideale, a costo di più lavaggi." }
+};
+function planLoads(map, settings, mode) {
+  const allow = (PLAN_MODES[mode] || PLAN_MODES.min).allow;
+  const keys = BASKET_ORDER.filter(k => map[k] && map[k].length && k !== "nolav");
+  const n = keys.length, N = 1 << n;
+  const kg = keys.map(k => map[k].reduce((s, it) => s + itemW(it), 0) / 1000);
+  const P = keys.map((a, i) => keys.map((b, j) => j > i ? LEVELS[compatPair(a, b, map).level] : 0));
+  const qty = keys.map(k => map[k].reduce((s, it) => s + (it.qty || 1), 0));
+  const feas = new Uint8Array(N), loads = new Uint8Array(N), pen = new Uint16Array(N), hand = new Uint8Array(N);
+  for (let m = 1; m < N; m++) {
+    let ok = true, p = 0, w = 0, q = 0; const ks = [];
+    for (let i = 0; i < n && ok; i++) if (m >> i & 1) {
+      ks.push(keys[i]); w += kg[i]; q += qty[i];
+      for (let j = i + 1; j < n; j++) if (m >> j & 1) { if (P[i][j] > allow) { ok = false; break; } p += P[i][j]; }
+    }
+    if (!ok) continue;
+    feas[m] = 1; pen[m] = p;
+    // pochi capi di lana o seta, o uno-due capi nuovi che stingono: a mano nel lavandino, non serve una lavatrice
+    if ((ks.every(k => k === "lana" || k === "mano") && q <= 3) || (ks.length === 1 && ks[0] === "stinge" && q <= 2)) {
+      hand[m] = 1; loads[m] = 0; pen[m] = p + 1;
+    } else loads[m] = Math.max(1, Math.ceil(w / (settings.cap * groupCapF(ks)) - 1e-9));
+  }
+  const best = new Array(N); best[0] = { l: 0, p: 0 };
+  for (let m = 1; m < N; m++) {
+    const low = m & -m; let b = null;
+    for (let s = m; s; s = (s - 1) & m) {
+      if (!(s & low) || !feas[s]) continue;
+      const r = best[m ^ s];
+      const l = r.l + loads[s], p = r.p + pen[s];
+      if (!b || l < b.l || (l === b.l && p < b.p)) b = { l, p, s };
+    }
+    best[m] = b;
+  }
+  const groups = [];
+  for (let m = N - 1; m > 0; m = m ^ best[m].s) {
+    const s = best[m].s;
+    const ks = keys.filter((k, i) => s >> i & 1);
+    const its = ks.flatMap(k => map[k]);
+    const q = its.reduce((t, it) => t + (it.qty || 1), 0);
+    groups.push({ keys: ks, kg: ks.reduce((t, k) => t + kg[keys.indexOf(k)], 0), n: loads[s], qty: q, hand: !!hand[s], ...compatLoad(ks, map) });
+  }
+  groups.sort((x, y) => BASKET_ORDER.indexOf(x.keys[0]) - BASKET_ORDER.indexOf(y.keys[0]));
+  const machine = groups.filter(g => !g.hand);
+  return {
+    mode, loads: machine, hand: groups.filter(g => g.hand),
+    count: machine.reduce((t, g) => t + g.n, 0),
+    nolav: map.nolav || []
+  };
 }
 
 // ───────────────────────────── RICETTA ─────────────────────────────
@@ -268,7 +371,7 @@ function buildRecipe(items, keys, pantry, settings) {
   const gov = DELICACY.find(k => keys.includes(k));
   R.gov = gov;
   const kg = items.reduce((s, it) => s + itemW(it), 0) / 1000;
-  const capF = Math.min(...keys.map(k => BASKETS[k].capF));
+  const capF = groupCapF(keys);
   const capKg = settings.cap * capF;
   R.kg = kg; R.capKg = capKg; R.fill = capKg ? kg / capKg : 0;
 
@@ -292,8 +395,15 @@ function buildRecipe(items, keys, pantry, settings) {
     const up = TEMP_STEPS.find(s => s > T);
     if (up && up <= maxT && up <= 60) { T = up; tempReasons.push("Alzata di un gradino perché lo sporco è pesante: il calore aiuta tensioattivi e grassi."); }
   }
+  const tones = new Set(items.map(colorGroup));
+  R.mixedTones = (tones.has("bianco") || tones.has("chiaro")) && (tones.has("colorato") || tones.has("scuro"));
+  if (R.mixedTones && T > 30) { T = 30; tempReasons.push("Scende a 30°C perché nel carico ci sono capi bianchi o chiari insieme a capi colorati o scuri: a freddo il colorante diffonde poco fuori dalla fibra, e l'acchiappacolore cattura quello che si stacca."); }
   T = snapDown(T, TEMP_STEPS);
   R.T = T;
+  if (R.igiene && T < 60 && keys.length > 1) {
+    const ig = [...new Set(igiene.map(it => lc(GARMENTS[it.g].name)))].slice(0, 3).join(", ");
+    tempReasons.push(`Compromesso: ${ig} lavati a ${T}°C invece di 60°C. Per l'uso quotidiano detersivo e risciacqui bastano; se in casa qualcuno ha un'infezione, lavali a parte a 60°C.`);
+  }
   // alternativa eco
   if (soil === "poco" && T >= 40 && !R.igiene) {
     R.ecoT = TEMP_STEPS[TEMP_STEPS.indexOf(T) - 1];
@@ -334,6 +444,11 @@ function buildRecipe(items, keys, pantry, settings) {
     default: pk = "cotone";
   }
   if (gov === "pesante" && items.every(it => has(it, "aparte"))) pk = "delicati";
+  if (pk === "eco" && T < 40) pk = R.mixedTones ? "colorati" : "cotone";
+  const fabs = new Set(keys.map(k => FABRIC[k]));
+  if (["delicati", "sport"].includes(gov) && (fabs.has("cot") || fabs.has("spu"))) pk = "misti";
+  if (gov === "stinge" && keys.includes("scuri")) pk = "scuri";
+  R.mixed = keys.length > 1;
   R.program = PROGRAMS[pk]; R.pk = pk;
   if (pk === "eco" && T > 40 && !R.igiene) { /* eco gestisce 40-60 */ }
 

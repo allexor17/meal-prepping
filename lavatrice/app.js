@@ -6,7 +6,7 @@
 const KEY = "oblo.v1";
 const DEF = {
   items: [], pantry: {}, seen: {}, load: [],
-  settings: { cap: 7, hard: "media", fh: "", tin: 15, price: 0.3, eco: true, quiz: false },
+  settings: { cap: 7, hard: "media", fh: "", tin: 15, price: 0.3, eco: true, quiz: false, planMode: "min" },
   stats: { washes: 0, qOk: 0, qTot: 0 },
   labTab: "box", labCat: "tutti"
 };
@@ -124,6 +124,7 @@ function renderCesto() {
       </ol>
     </section>`;
   }
+  if (n) h += planHTML(map);
   h += `<div class="quizbar"><div class="txt"><b>Mettimi alla prova</b>Prima di smistare un capo, indovini tu la cesta.${S.stats.qTot ? ` Finora ${S.stats.qOk} su ${S.stats.qTot}.` : ""}</div><label class="switch"><input type="checkbox" data-act="quiz" ${S.settings.quiz ? "checked" : ""} aria-label="Mettimi alla prova"><span></span></label></div>`;
 
   if (n) {
@@ -167,6 +168,66 @@ function basketWarnings(k, its) {
   const lim = its.filter(it => it.label && /^\d+$/.test(it.label) && +it.label < BASKETS[k].temp);
   if (lim.length) w.push(`${cap1(names(lim))}: l'etichetta abbassa la temperatura di tutta la cesta.`);
   return w;
+}
+
+// Piano: meno lavatrici possibili
+const noteCls = l => ({ ok: "ok", lieve: "warn", forte: "forte", no: "no" })[l] || "warn";
+const lvlCls = l => ({ ok: "si", lieve: "facoltativo", forte: "forte", no: "no" })[l] || "facoltativo";
+const sameSet = (a, b) => a.length === b.length && a.every(x => b.includes(x));
+function planHTML(map) {
+  const modes = Object.keys(PLAN_MODES);
+  const plans = Object.fromEntries(modes.map(m => [m, planLoads(map, S.settings, m)]));
+  const P = plans[S.settings.planMode] || plans.min;
+  if (!P.loads.length && !P.hand.length && !P.nolav.length) return "";
+  const word = c => c === 1 ? "lavatrice" : "lavatrici";
+  const saved = plans.cura.count - P.count;
+  let h = `<section class="panel plan">
+    <div class="plan-head"><div><h3>Il piano</h3><p class="small muted">Le ceste riunite nel minor numero di lavatrici, con i compromessi che accetti.</p></div>
+      <div class="plan-n"><b>${P.count}</b><span>${word(P.count)}</span></div></div>
+    <div class="seg seg3" role="group" aria-label="Quanto compromesso accetti">${modes.map(m => `<button type="button" data-act="planmode" data-v="${m}" aria-pressed="${P.mode === m}">${PLAN_MODES[m].name}<small>${plans[m].count} ${word(plans[m].count)}</small></button>`).join("")}</div>
+    <p class="small muted">${PLAN_MODES[P.mode].text}${saved > 0 ? ` Rispetto alla massima cura risparmi ${saved} ${word(saved)}: circa ${saved * 45} litri d'acqua e ${fmt1(saved * 0.6)} kWh, valori indicativi.` : ""} <button class="btn plain sm" type="button" data-act="card" data-id="compromesso" style="padding:0;min-height:0">Come ragiona il piano</button></p>`;
+  if (P.loads.length) h += `<ol class="loads">${P.loads.map((g, i) => {
+    const its = g.keys.flatMap(k => map[k]);
+    const R = buildRecipe(its, g.keys, S.pantry, S.settings);
+    const cm = g.msgs.filter(m => m.level !== "ok");
+    return `<li class="load"><div class="load-sw">${g.keys.map(swatch).join("")}</div><div class="load-body">
+      <b>Lavatrice ${i + 1}${g.n > 1 ? ` · da dividere in ${g.n}` : ""}</b>
+      <p class="load-names">${g.keys.map(k => BASKETS[k].name).join(" + ")}</p>
+      <p class="small">${R.program.name}, ${R.T}°C, ${R.spin} giri · ${fmt1(g.kg)} kg, ${Math.round(R.fill * 100)}% del cestello</p>
+      ${cm.length ? `<ul class="compro"><li><span class="lvl ${lvlCls(cm[0].level)}">${LEVEL_NAME[cm[0].level]}</span> ${cm[0].text}</li></ul>${cm.length > 1 ? `<details class="why"><summary>${cm.length === 2 ? "Un altro compromesso" : `Altri ${cm.length - 1} compromessi`}</summary><ul class="compro">${cm.slice(1).map(m => `<li><span class="lvl ${lvlCls(m.level)}">${LEVEL_NAME[m.level]}</span> ${m.text}</li>`).join("")}</ul></details>` : ""}` : `<p class="small muted">Nessun compromesso.</p>`}
+      ${g.n > 1 ? `<p class="tiny">Non ci sta tutto in un cestello: dividi in ${g.n} lavaggi uguali.</p>` : R.fill < 0.3 ? `<p class="tiny">Carico leggero: se non ti serve subito, aspetta di avere più capi.</p>` : ""}
+      <button class="btn sm" type="button" data-act="plan-open" data-i="${i}">Apri in lavatrice</button></div></li>`;
+  }).join("")}</ol>`;
+  for (const g of P.hand) h += handHTML(g, map);
+  if (P.nolav.length) h += `<p class="small" style="margin-top:12px"><b>In tintoria:</b> ${names(P.nolav, 5)}.</p>`;
+  return h + `</section>`;
+}
+function handHTML(g, map) {
+  const its = g.keys.flatMap(k => map[k]);
+  const wool = g.keys.some(k => k === "lana" || k === "mano");
+  const steps = wool ? [
+    "Bacinella d'acqua a 20–30°C con un cucchiaio di detersivo per lana (o di shampoo neutro), sciolto prima di immergere il capo.",
+    "Immergi e premi delicatamente per 3–5 minuti. Niente strofinare né torcere: è lo sfregamento a far agganciare le scaglie della lana.",
+    "Risciacqua in acqua alla stessa temperatura finché non fa più schiuma: lo sbalzo termico favorisce il feltro.",
+    "Arrotola il capo in un asciugamano e premi per togliere l'acqua, poi stendilo in piano all'ombra, nella sua forma."
+  ] : [
+    "Bacinella d'acqua fredda con un goccio di detersivo per colorati.",
+    "Immergi e muovi il capo per qualche minuto: il colore che vedi nell'acqua è il colorante libero.",
+    "Risciacqua in acqua fredda finché esce limpida: da lì in poi il capo può andare in lavatrice con i colori simili.",
+    "Strizza senza torcere e stendi all'ombra, lontano dagli altri capi."
+  ];
+  return `<div class="load hand"><div class="load-sw">${g.keys.map(swatch).join("")}</div><div class="load-body">
+    <b>A mano nel lavandino</b><p class="load-names">${cap1(names(its, 4))}</p>
+    <p class="small muted">${wool ? "Per pochi capi di lana o seta non vale la pena di avviare una lavatrice: a mano ci vogliono dieci minuti." : "Uno o due capi nuovi che stingono: lavarli a mano a freddo costa meno di una lavatrice, e vedi quanto colore rilasciano."}</p>
+    <details class="why"><summary>Come si fa</summary><div class="why-body"><ol class="bullets">${steps.map(x => `<li>${x}</li>`).join("")}</ol></div></details>
+    <button class="btn ghost sm" type="button" data-act="hand-done" data-keys="${g.keys.join(",")}" style="margin-top:10px">Fatto, segna come lavato</button></div></div>`;
+}
+function removeBaskets(keys) {
+  const map = classify();
+  const ids = new Set(keys.flatMap(k => (map[k] || []).map(it => it.id)));
+  const n = qtyOf(S.items.filter(it => ids.has(it.id)));
+  S.items = S.items.filter(it => !ids.has(it.id));
+  return n;
 }
 
 // Bozza di un capo
@@ -370,16 +431,26 @@ function renderLavatrice() {
     h += `<section class="panel empty"><div class="porthole-wrap">${portholeHTML([])}</div><h3>Il cestello è vuoto</h3><p>Metti qualche capo nel cesto: lo smisto io, e poi qui trovi programma, gradi, giri e dosi.</p><button class="btn" type="button" data-act="go" data-view="cesto">Vai al cesto</button></section>`;
     $("#v-lavatrice").innerHTML = h; CUR = null; return;
   }
+  const PL = planLoads(map, S.settings, S.settings.planMode || "min");
   S.load = (S.load || []).filter(k => keys.includes(k));
-  if (!S.load.length) S.load = [keys[0]];
+  if (!S.load.length) S.load = PL.loads.length ? [...PL.loads[0].keys] : [keys[0]];
   const items = S.load.flatMap(k => map[k]);
   const R = buildRecipe(items, S.load, S.pantry, S.settings);
   CUR = R;
-  const comp = compatLoad(S.load);
+  const comp = compatLoad(S.load, map);
 
+  if (PL.loads.length) {
+    h += `<div class="stack" style="gap:8px"><p class="small"><b>Dal piano</b> · ${PLAN_MODES[PL.mode].name.toLowerCase()}, ${PL.count} ${PL.count === 1 ? "lavatrice" : "lavatrici"}</p>
+      <div class="chips">${PL.loads.map((g, i) => `<button class="chip" type="button" data-act="plan-pick" data-i="${i}" aria-pressed="${sameSet(g.keys, S.load)}"><span class="mini-sw">${g.keys.map(swatch).join("")}</span>Lavatrice ${i + 1}</button>`).join("")}</div>
+      <p class="small"><b>Oppure scegli tu le ceste</b></p></div>`;
+  }
   h += `<div class="chips load-pick">${keys.map(k => `<button class="chip" type="button" data-act="pick" data-b="${k}" aria-pressed="${S.load.includes(k)}">${swatch(k)}${BASKETS[k].name} <span class="tiny">${qtyOf(map[k])}</span></button>`).join("")}</div>`;
-  const T_LEVEL = { ok: "Si può fare", warn: "Si può, con qualche attenzione", no: "Meglio di no" };
-  for (const m of comp.msgs) h += `<div class="note ${m.level}"><b>${m.solo ? `${BASKETS[m.solo].name}: va da sola` : `${BASKETS[m.a].name} + ${BASKETS[m.b].name}: ${lc(T_LEVEL[m.level])}`}</b>${m.text}</div>`;
+  const noteHTML = m => `<div class="note ${noteCls(m.level)}"><b>${BASKETS[m.a].name} + ${BASKETS[m.b].name}: ${LEVEL_NAME[m.level]}</b>${m.text}</div>`;
+  const cmsgs = comp.msgs.filter(m => m.level !== "ok");
+  if (cmsgs.length) {
+    h += noteHTML(cmsgs[0]);
+    if (cmsgs.length > 1) h += `<details class="why" style="margin-top:0"><summary>${cmsgs.length === 2 ? "Un altro compromesso" : `Altri ${cmsgs.length - 1} compromessi`} in questo carico</summary><div class="why-body">${cmsgs.slice(1).map(noteHTML).join("")}</div></details>`;
+  } else if (comp.msgs.length) h += noteHTML(comp.msgs[0]);
 
   // la macchina
   h += `<section class="machine" aria-label="La lavatrice">
@@ -494,12 +565,12 @@ function portholeHTML(items) {
 function mergeSuggestions(keys, map, R) {
   if (R.fill >= 0.5) return "";
   const others = keys.filter(k => !S.load.includes(k));
-  const ok = others.filter(k => compatLoad([...S.load, k]).level === "ok");
-  const warn = others.filter(k => compatLoad([...S.load, k]).level === "warn");
+  const ok = others.filter(k => compatLoad([...S.load, k], map).level === "ok");
+  const warn = others.filter(k => compatLoad([...S.load, k], map).level === "lieve");
   if (!ok.length && !warn.length) return "";
   const chips = ks => `<div class="chips" style="margin-top:6px">${ks.map(k => `<button class="chip" type="button" data-act="pick" data-b="${k}">${swatch(k)}+ ${BASKETS[k].name}</button>`).join("")}</div>`;
   return (ok.length ? `<p class="small" style="margin-top:12px"><b>Puoi unire senza problemi:</b></p>${chips(ok)}` : "")
-    + (warn.length ? `<p class="small" style="margin-top:12px"><b>Si può unire, con qualche attenzione:</b> aggiungila e leggi cosa cambia.</p>${chips(warn)}` : "");
+    + (warn.length ? `<p class="small" style="margin-top:12px"><b>Con un piccolo compromesso:</b> aggiungila e leggi cosa cambia.</p>${chips(warn)}` : "");
 }
 
 // Simulazione
@@ -749,6 +820,15 @@ document.addEventListener("click", e => {
     case "remove": S.items = S.items.filter(it => it.id !== id); save(); closeSheet(); render(); toast("Tolto dal cesto."); break;
     case "clear": if (confirm("Svuotare il cesto?")) { S.items = []; S.load = []; save(); render(); } break;
     case "wash": S.load = [a.dataset.b]; save(); go("lavatrice"); break;
+    case "planmode": S.settings.planMode = a.dataset.v; S.load = []; save(); render(); break;
+    case "plan-open": case "plan-pick": {
+      const P = planLoads(classify(), S.settings, S.settings.planMode || "min");
+      const g = P.loads[+a.dataset.i]; if (!g) break;
+      S.load = [...g.keys]; save();
+      if (act === "plan-open") go("lavatrice"); else render();
+      break;
+    }
+    case "hand-done": { const n = removeBaskets(a.dataset.keys.split(",")); save(); render(); toast(`Lavati a mano ${n} ${n === 1 ? "capo" : "capi"}. In piano all'ombra.`); break; }
     // bozza
     case "d-g": D.g = a.dataset.v; D.fiber = GARMENTS[D.g].fiber; D.pickG = false; D.flags.elastan = ["leggings", "sportmaglia", "costume"].includes(D.g); renderAdd(false); break;
     case "d-regarment": D.pickG = true; renderAdd(false); break;

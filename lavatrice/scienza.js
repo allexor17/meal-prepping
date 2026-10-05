@@ -657,6 +657,28 @@ const CARDS = [
     rel: ["dose", "polvere_liquido"]
   },
   {
+    id: "compromesso", cat: "ecologia",
+    title: "Una lavatrice in meno: quanto vale un compromesso?",
+    ask: "Hai 2 kg di bianchi e 2 kg di colorati. Cosa consuma meno: due lavaggi separati, o uno solo da 4 kg a 30°C?",
+    opts: [
+      ["Due lavaggi: ognuno è più leggero, quindi consuma la metà", false, "Il consumo di una lavatrice dipende poco dal peso: l'acqua da scaldare, i risciacqui e il motore ci sono comunque."],
+      ["Uno solo: acqua ed energia si dividono su più capi", true],
+      ["È uguale", false, "Un ciclo ha un costo fisso alto: due cicli lo pagano due volte."]
+    ],
+    body: [
+      "Una lavatrice spende acqua ed energia quasi indipendentemente da quanto è piena: deve scaldare il bagno, fare i risciacqui, far girare il cestello. Le macchine moderne riducono un po' l'acqua con i carichi piccoli, ma il consumo <b>per chilo di bucato</b> cresce molto quando il cestello è mezzo vuoto. È anche il motivo per cui l'etichetta energetica europea misura i consumi a diversi livelli di carico.",
+      "Il compromesso di un carico misto si governa con le leve che già conosci: <b>temperatura bassa</b>, perché a 30°C il colorante diffonde poco fuori dalla fibra; <b>acchiappacolore</b>, che cattura il colorante libero; <b>detersivo per colorati</b>, senza sbiancanti; <b>retina</b> per i delicati; <b>centrifuga</b> regolata sul capo più fragile. Il prezzo lo paga sempre il capo più esigente: i bianchi perdono un po' di splendore, la spugna l'igiene dei 60°C, il cotone esce più umido.",
+      "Il piano di Oblò prova tutti i raggruppamenti possibili delle ceste e sceglie quello con meno lavatrici; a parità, quello con i compromessi più leggeri. Per ogni coppia di ceste valuta tre cose: il <b>colore</b> (chi macchia chi), il <b>tessuto</b> (quale programma reggono tutti) e l'<b>igiene</b> (chi perde i 60°C). Lana, piumini e capi che stingono restano isolati, o vanno a mano se sono pochi."
+    ],
+    ana: "È il cohorting di un reparto: chi ha lo stesso profilo di rischio condivide la stanza con le precauzioni giuste, e si isola solo chi deve davvero esserlo. Nel cestello le precauzioni sono temperatura, acchiappacolore e retina.",
+    pratica: [
+      "Meno lavatrici: carichi pieni a 30°C, due acchiappacolore, scuri al rovescio, delicati in retina.",
+      "Ogni tanto concedi a bianchi e spugna un lavaggio da soli a 60°C: recuperi bianco e igiene.",
+      "Pochi capi di lana o seta: a mano. I capi nuovi che stingono: primo lavaggio a mano, poi con i colori simili."
+    ],
+    rel: ["carico", "acchiappacolore", "sessanta", "energia"]
+  },
+  {
     id: "lavare_meno", cat: "ecologia",
     title: "Il lavaggio più ecologico è quello che non fai",
     ask: "Un paio di jeans va lavato…",
