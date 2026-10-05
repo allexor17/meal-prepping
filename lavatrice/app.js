@@ -830,7 +830,7 @@ document.addEventListener("click", e => {
     }
     case "hand-done": { const n = removeBaskets(a.dataset.keys.split(",")); save(); render(); toast(`Lavati a mano ${n} ${n === 1 ? "capo" : "capi"}. In piano all'ombra.`); break; }
     // bozza
-    case "d-g": D.g = a.dataset.v; D.fiber = GARMENTS[D.g].fiber; D.pickG = false; D.flags.elastan = ["leggings", "sportmaglia", "costume"].includes(D.g); renderAdd(false); break;
+    case "d-g": D.g = a.dataset.v; D.fiber = GARMENTS[D.g].fiber; D.pickG = false; D.flags.elastan = ["leggings", "sportmaglia", "costume"].includes(D.g); if (GARMENTS[D.g].stain && !D.id) D.flags.macchia = GARMENTS[D.g].stain; renderAdd(false); break;
     case "d-regarment": D.pickG = true; renderAdd(false); break;
     case "d-color": D.color = a.dataset.v; renderAdd(); break;
     case "d-fiber": D.fiber = a.dataset.v; renderAdd(); break;

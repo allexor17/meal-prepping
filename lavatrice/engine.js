@@ -48,6 +48,7 @@ const BASKET_CARDS = {
 const has = (it, tag) => (GARMENTS[it.g]?.tags || []).includes(tag);
 const colorGroup = it => COLORS[it.color]?.group || "colorato";
 const lc = s => s.charAt(0).toLowerCase() + s.slice(1);
+const cap0 = s => s.charAt(0).toUpperCase() + s.slice(1);
 const itemW = it => (GARMENTS[it.g]?.w || 200) * (it.qty || 1);
 
 function itemMaxT(it) {
@@ -72,7 +73,7 @@ function sortItem(it) {
   const G = GARMENTS[it.g], F = FIBERS[it.fiber], C = COLORS[it.color];
   const grp = colorGroup(it);
   const gname = G.name, col = lc(C.name), fib = lc(F.name);
-  const out = (basket, why) => ({ basket, why, notes: itemNotes(it, basket), cards: BASKET_CARDS[basket] || [] });
+  const out = (basket, why, cards) => ({ basket, why, notes: itemNotes(it, basket), cards: cards || BASKET_CARDS[basket] || [] });
 
   if (it.label === "no") return out("nolav", "Sull'etichetta c'è la vaschetta barrata: niente acqua. Il tessuto, le imbottiture o le finiture non lo reggerebbero. Cerca il cerchio sull'etichetta: ti dice quale pulizia professionale chiedere in tintoria.");
   if (it.fiber === "pelle") return out("nolav", "La pelle in acqua perde gli oli che la tengono morbida: asciugando si irrigidisce, si crepa e si restringe. Va in una tintoria che tratta la pelle.");
@@ -124,6 +125,13 @@ function sortItem(it) {
     return out("spugna_col", it.g === "strofinacci" ? base + " Essendo colorati, con la spugna colorata." : base + ": i colori della spugna spesso reggono i 40–60°C, ma non insieme ai bianchi.");
   }
 
+  if (has(it, "lavabile")) {
+    const b = { bianco: "bianchi", chiaro: "chiari", colorato: "colorati", scuro: "scuri" }[grp];
+    const what = it.g === "assorbente" ? "il sangue mestruale, fatto di proteine che il calore coagulerebbe nella fibra" : "le perdite, muco e proteine che seccando aderiscono alla fibra";
+    const temp = grp === "bianco" ? "60°C" : grp === "chiaro" ? "40–60°C, come l'etichetta consente" : "40°C con ossigeno attivo";
+    return out(b, `${gname} in ${fib}: prima un risciacquo in acqua fredda per togliere ${what}. Poi, pulito, va con l'intimo nella cesta ${BASKETS[b].name.toLowerCase()}, a ${temp}: prima si toglie a freddo, poi si igienizza a caldo. Niente ammorbidente, che con il suo film idrofobo ridurrebbe l'assorbenza.`, ["lavabili", "sangue", "ammorbidente"]);
+  }
+
   const cellul = ["cotone", "lino", "misto", "denim"].includes(it.fiber);
   if (grp === "bianco") {
     const extra = it.g === "camice" ? " Per una divisa da reparto è proprio quello che serve: 60°C se l'etichetta lo consente." : "";
@@ -152,14 +160,19 @@ function itemNotes(it, basket) {
   if (has(it, "bottoni")) n.push("Sbottonalo: le asole tirate in centrifuga si sfilacciano.");
   if (has(it, "zip")) n.push("Chiudi la zip: aperta graffia gli altri capi.");
   if (has(it, "chiudi")) n.push("Chiudilo, così i capi piccoli non ci finiscono dentro.");
-  if (has(it, "retina") || it.flags.decorazioni) n.push("Mettilo in una retina.");
+  if (has(it, "lavabile")) {
+    n.push("Prima del cesto: risciacquo in acqua fredda finché l'acqua esce quasi limpida.");
+    n.push("Chiudi i bottoncini a pressione e mettilo in una retina: è piccolo e si perde, e le alette aperte si agganciano agli altri capi.");
+    n.push("Se ha uno strato impermeabile (PUL): massimo 60°C, niente asciugatrice calda, niente candeggina.");
+  }
+  if ((has(it, "retina") || it.flags.decorazioni) && !has(it, "lavabile")) n.push("Mettilo in una retina.");
   if (it.flags.elastan) n.push("Contiene elastan: al massimo 40°C, niente cloro, niente asciugatrice calda.");
   if (it.flags.stampa) n.push("Stampa: niente ferro sopra e al massimo 40°C.");
   if (it.label && /^\d+$/.test(it.label) && BASKETS[basket] && +it.label < BASKETS[basket].temp)
     n.push(`L'etichetta dice al massimo ${it.label}°C: in questo carico la temperatura scenderà per tutti.`);
   if (has(it, "cede")) n.push("Perde pelucchi: tienilo lontano da pile, velluto e sintetici scuri.");
   if (has(it, "attira")) n.push("Attira i pelucchi: lontano da spugna e felpe nuove.");
-  if (has(it, "noAmm") && !has(it, "spugna")) n.push("Niente ammorbidente.");
+  if (has(it, "noAmm") && !has(it, "spugna") && !has(it, "lavabile")) n.push("Niente ammorbidente.");
   if (it.flags.macchia && STAINS[it.flags.macchia]) n.push(`Ha una macchia di ${lc(STAINS[it.flags.macchia].name)}: trattala prima del lavaggio. Trovi i passi nella lavatrice.`);
   if (it.flags.sporco === "poco" && !has(it, "igiene") && !has(it, "sport")) n.push("È poco sporco: forse basta arieggiarlo e smacchiare localmente?");
   if (it.flags.nuovo && basket !== "stinge" && colorGroup(it) !== "bianco") n.push("Capo nuovo: fai il test del cotton fioc prima del primo lavaggio.");
@@ -251,7 +264,9 @@ function compatPair(a, b, map) {
     const ta60 = recTemp(a, map[a]) >= 60, tb60 = recTemp(b, map[b]) >= 60;
     if (ta60 !== tb60) {
       const hot = ta60 ? a : b;
-      heat = ["lieve", `La cesta «${BASKETS[hot].name}» vorrebbe 60°C per l'igiene: insieme si scende a 40°C o meno. Con l'ossigeno attivo l'igiene resta buona per l'uso quotidiano.`];
+      heat = map[hot].some(it => has(it, "lavabile"))
+        ? ["forte", `La cesta «${BASKETS[hot].name}» contiene assorbenti lavabili e vorrebbe 60°C. A 30–40°C, dopo il risciacquo freddo, detersivo e risciacqui li puliscono bene per l'uso personale; ogni tanto concedi loro un lavaggio a 60°C con l'intimo chiaro.`]
+        : ["lieve", `La cesta «${BASKETS[hot].name}» vorrebbe 60°C per l'igiene: insieme si scende a 40°C o meno. Con l'ossigeno attivo l'igiene resta buona per l'uso quotidiano.`];
     }
   }
   const w = worse(worse(tone, fab), heat);
@@ -549,6 +564,7 @@ function buildRecipe(items, keys, pantry, settings) {
   if (items.some(it => has(it, "sport") || it.fiber === "tecnico" || it.fiber === "membrana")) noSoftReasons.push("i tessuti tecnici si otturerebbero");
   if (items.some(it => it.g === "microfibra")) noSoftReasons.push("la microfibra smetterebbe di catturare lo sporco");
   if (items.some(it => it.fiber === "piuma")) noSoftReasons.push("le piume si incollerebbero");
+  if (items.some(it => has(it, "lavabile"))) noSoftReasons.push("gli assorbenti lavabili perderebbero assorbenza");
   if (["lana", "mano"].includes(gov)) noSoftReasons.push("il detersivo per lana basta, e la fibra non ne ha bisogno");
   const acidOk = !["lana", "mano", "piumini"].includes(gov);
   const rinse = { soft: noSoftReasons.length === 0, why: [] };
@@ -588,6 +604,7 @@ function buildRecipe(items, keys, pantry, settings) {
   if (rov.length) ck.push(`Rovescia ${rov.join(", ")}.`);
   if (R.retina) ck.push(`In retina: ${R.retina.join(", ")}.`);
   if (items.some(it => it.g === "scarpe")) ck.push("Togli lacci e solette, spazzola via la terra.");
+  if (items.some(it => has(it, "lavabile"))) ck.push(`${cap0(list("lavabile").join(", "))}: già risciacquati in acqua fredda, bottoncini chiusi, in retina.`);
   if (items.some(it => it.flags.peli)) ck.push("Togli i peli con un rullo adesivo prima di bagnare i capi.");
   if (R.stains.length) ck.push("Pretratta le macchie (qui sotto).");
   if (R.fill > 1) ck.push("Il cestello è troppo pieno: dividi in due lavaggi.");

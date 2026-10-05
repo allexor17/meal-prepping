@@ -81,6 +81,31 @@ const CARDS = [
     rel: ["enzimi", "ossigeno", "sessanta"]
   },
   {
+    id: "lavabili", cat: "chimica",
+    title: "Assorbenti lavabili: prima freddo, poi caldo",
+    ask: "Dopo un lavaggio a 60°C su un assorbente lavabile resta un alone marroncino. L'assorbente è ancora sporco?",
+    opts: [
+      ["Sì: se c'è la macchia, non è igienico", false, "Il colore e l'igiene sono due cose diverse: l'alone è un pigmento, non una colonia di batteri."],
+      ["No: l'alone è pigmento rimasto nella fibra, l'igiene la fanno temperatura, detersivo e risciacqui", true],
+      ["Dipende dal detersivo usato", false, "Il detersivo conta per togliere il colore, ma l'igiene a 60°C c'è comunque."]
+    ],
+    body: [
+      "Il sangue mestruale è fatto di sangue, muco e cellule: proteine e glicoproteine. Come per ogni macchia di sangue, l'acqua fredda le lascia solubili e le porta via; l'acqua calda le denatura e le incolla alla fibra.",
+      "Per questo l'<b>ordine</b> conta: prima un risciacquo freddo che toglie la materia organica, poi il lavaggio caldo che igienizza. Se parti dal caldo, cuoci le proteine dentro il cotone e la macchia diventa permanente. Se invece hai già tolto il grosso a freddo, a 60°C il calore non fissa più quasi nulla e fa solo il suo lavoro igienico.",
+      "L'alone che a volte resta è soprattutto pigmento derivato dal ferro dell'eme, ossidato e intrappolato nella fibra: brutto da vedere, ma dopo detersivo, 60°C e risciacqui non è un problema igienico. L'ossigeno attivo e il sole lo schiariscono.",
+      "Niente ammorbidente: i tensioattivi cationici rivestono il cotone di un film idrofobo e l'assorbente beve meno, esattamente come succede agli asciugamani. In più resterebbero residui a contatto con la mucosa."
+    ],
+    ana: "È la regola della sterilizzazione degli strumenti chirurgici: prima la detersione, che toglie la materia organica, poi la sterilizzazione. Se sterilizzi uno strumento ancora sporco, il calore fissa i residui organici e protegge i microrganismi che ci sono sotto.",
+    pratica: [
+      "Risciacquo freddo appena lo togli, finché l'acqua esce quasi limpida.",
+      "Se lavi più tardi: ammollo freddo cambiando l'acqua ogni giorno, oppure asciugatura all'aria. Mai chiuso e umido.",
+      "Lavaggio con l'intimo a 60°C sui chiari, o a 40°C con ossigeno attivo sui colorati. Bottoncini chiusi, in retina.",
+      "Niente ammorbidente né candeggina. Se c'è uno strato impermeabile (PUL): massimo 60°C e niente asciugatrice calda.",
+      "Al sole se puoi: gli UV schiariscono gli aloni."
+    ],
+    rel: ["sangue", "ammorbidente", "sessanta", "stendere"]
+  },
+  {
     id: "ossigeno", cat: "chimica",
     title: "Dove finisce il colore di una macchia sbiancata?",
     ask: "Quando il percarbonato fa sparire una macchia di vino, le molecole del vino…",
