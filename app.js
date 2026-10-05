@@ -26,7 +26,7 @@ const RENAMED={chili:"stufato"}, REMOVED=["pomodori"];
 function emptySlot(){return{m:null,b:null,s:null,k:null,x:[],n:""}}
 function emptyDay(){return{p:emptySlot(),c:emptySlot(),sn:{col:{id:null,f:null},spu:{id:null,f:null}}}}
 function emptyWeek(){return DAYS.map(emptyDay)}
-function defaults(){return{v:4,libVersion:LIB_VERSION,recipes:clone(LIB),week:null,weekStart:null,extras:[{q:"",n:"sale iodato, pepe, olio EVO",r:"Basi"},{q:"",n:"spezie dolci (curcuma, cumino, paprika dolce, origano, cannella)",r:"Basi"}],have:[],history:[],stock:[],addons:[],prices:{},planView:"list",filter:"tutte",seed:1,leftoverDone:[],supps:[],suppTaken:{},pantry:[],seeded:{}}}
+function defaults(){return{v:4,libVersion:LIB_VERSION,recipes:clone(LIB),week:null,weekStart:null,extras:[{q:"",n:"sale iodato, pepe, olio EVO",r:"Basi"},{q:"",n:"spezie dolci (curcuma, cumino, paprika dolce, origano, cannella)",r:"Basi"}],have:[],history:[],stock:[],addons:[],prices:{},planView:"list",filter:"tutte",seed:1,leftoverDone:[],supps:[],suppTaken:{},pantry:[],seeded:{},inventory:[]}}
 function mapId(id){if(!id)return null;if(RENAMED[id])return RENAMED[id];if(REMOVED.includes(id))return null;return id}
 function mergeLib(st){
   const libIds=new Set(LIB.map(r=>r.id));const out=[];const seen=new Set();
@@ -48,8 +48,13 @@ function load(){
   return defaults();
 }
 let S=load();
-if(!S.seeded)S.seeded={};if(!S.pantry)S.pantry=[];
-if(!S.seeded.receipt0927){["mandorle","semi di zucca","semi di chia","crema 100% nocciole","quinoa","miglio","bulgur"].forEach(k=>{if(!S.pantry.includes(k))S.pantry.push(k)});S.seeded.receipt0927=true;try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+if(!S.seeded)S.seeded={};if(!S.pantry)S.pantry=[];if(!S.inventory)S.inventory=[];
+(function migrateInventory(){const today=iso(new Date());const addInv=(name,o={})=>{if(S.inventory.some(it=>it.name.toLowerCase()===name.toLowerCase()))return;S.inventory.push({id:uid("v"),name,qty:"",where:"dispensa",exp:null,priority:"lungo",added:today,...o})};
+  if(!S.seeded.receipt0927){["mandorle","semi di zucca","semi di chia","crema 100% nocciole","quinoa","miglio","bulgur"].forEach(k=>addInv(k));S.seeded.receipt0927=true}
+  S.pantry.forEach(k=>addInv(k));S.pantry=[];
+  if(!S.seeded.inv1005){addInv("soia granulare",{qty:"1 kg",priority:"medio"});addInv("pasta di lenticchie rosse",{priority:"medio"});addInv("pasta agli spinaci, broccoli e basilico",{priority:"medio"});addInv("pasta di piselli",{priority:"medio"});addInv("bulgur",{priority:"medio"});addInv("couscous",{priority:"medio"});
+    S.inventory.forEach(it=>{if(it.name==="bulgur")it.priority="medio"});S.seeded.inv1005=true}
+  try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}})();
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));return true}catch(e){toast("Memoria piena: togli qualche foto o esporta un backup");return false}}
 const R=id=>S.recipes.find(r=>r.id===id);
 const B=id=>BOOSTERS.find(b=>b.id===id);
@@ -59,6 +64,31 @@ const weekMonth=()=>addDays(S.weekStart,0).getMonth()+1;
 const inSeason=(r,m)=>!r.months||!r.months.length||r.months.includes(m);
 function monthsLabel(ms){if(!ms||ms.length>=12)return "tutto l'anno";const set=new Set(ms);const runs=[];ms.slice().sort((a,b)=>a-b).forEach(m=>{if(!set.has(m===1?12:m-1)){let e=m;while(set.has(e%12+1)&&e%12+1!==m)e=e%12+1;runs.push(MONTHS[m-1]+(e!==m?"–"+MONTHS[e-1]:""))}});return runs.join(", ")||"tutto l'anno"}
 
+
+
+/* ============ INVENTARIO DI CASA ============ */
+const INV_STOP=new Set(["di","del","della","delle","dei","degli","al","alla","allo","agli","ai","e","con","in","100%","bio","integrale","integrali","perlato","perlata","secche","secchi","secca","decorticate","decorticata","surgelati","surgelato","surgelate","freschi","fresche","fresco","fresca","naturale","grattugiato","grattugiata","lattina","lattine","scatola","fine","grosso","tipo","0%","g","kg","italiano","italiana","vergine","nazionale","classico","classica","confezione"]);
+const INV_FORM=["past","farin","crem","latt","bevand","yogurt","burr","oli","succ","polp","passat","concentrat","sem","fiocch","sug","pest","sals","biscott","crackers","grissin"];
+function invTokens(name){const n=String(name||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/c(?:o?u)s\s*c(?:o?u)s/g,"couscous").replace(/\bevo\b/g,"extravergine").replace(/[^a-z0-9%\s]/g," ");
+  return[...new Set(n.split(/\s+/).filter(w=>w&&!INV_STOP.has(w)&&!/^\d+$/.test(w)).map(w=>w.length>3&&/[aeio]$/.test(w)?w.slice(0,-1):w))]}
+function matchNames(a,b){const A=invTokens(a),B=invTokens(b);if(!A.length||!B.length)return false;
+  const fa=A.filter(t=>INV_FORM.includes(t)).sort().join(),fb=B.filter(t=>INV_FORM.includes(t)).sort().join();if(fa!==fb)return false;
+  const sa=new Set(A),sb=new Set(B);const aInB=A.every(t=>sb.has(t)),bInA=B.every(t=>sa.has(t));
+  const solo=X=>X.length>=2||!INV_FORM.includes(X[0]);
+  return(aInB&&bInA)||(aInB&&solo(A))||(bInA&&solo(B))}
+function daysUntil(d){return Math.round((new Date(d+"T12:00:00")-new Date(iso(new Date())+"T12:00:00"))/864e5)}
+function effPriority(it){const d=it.exp?daysUntil(it.exp):null;
+  if(it.priority&&it.priority!=="auto"){if(d!==null&&d<=3)return"breve";return it.priority}
+  if(d===null)return"medio";if(d<=7)return"breve";if(d<=30)return"medio";return"lungo"}
+const PR_W={breve:3,medio:1.5,lungo:.5};
+const PR_LABEL={breve:"da consumare presto",medio:"nel medio termine",lungo:"senza fretta"};
+function invFind(ingName){return(S.inventory||[]).find(it=>matchNames(it.name,ingName))}
+function recipeInv(r){const used=[];let sc=0;ingOf(r).forEach(i=>{if(i.r==="Basi")return;const it=invFind(i.n);if(it&&!used.includes(it)){used.push(it);sc+=PR_W[effPriority(it)]}});return{sc,used}}
+function recipesUsing(it,onlySeason){const m=weekMonth();const rs=S.recipes.filter(r=>!r.spicy&&ingOf(r).some(i=>matchNames(it.name,i.n)));rs.sort((a,b)=>inSeason(b,m)-inSeason(a,m));return onlySeason?rs.filter(r=>inSeason(r,m)):rs}
+function snacksUsing(it){return SNACKS.filter(x=>x.ing.some(i=>matchNames(it.name,i.n)))}
+function isBasi(it){return S.recipes.some(r=>r.ing.some(i=>i.r==="Basi"&&matchNames(it.name,i.n)))}
+function weekUsesInv(it){let u=false;eachUse(S.week,r=>{if(!u&&ingOf(r).some(i=>matchNames(it.name,i.n)))u=true});S.addons.forEach(id=>{const r=R(id);if(r&&ingOf(r).some(i=>matchNames(it.name,i.n)))u=true});
+  S.week.forEach(d=>["col","spu"].forEach(t=>{const x=d.sn&&d.sn[t];const sn=x&&SN(x.id);if(sn&&sn.ing.some(i=>matchNames(it.name,i.n)))u=true;if(x&&x.f&&FRT(x.f)&&matchNames(it.name,FRT(x.f).n))u=true}));return u}
 
 /* ============ STAGIONE: RICETTE CHE SI ADATTANO E CONTROLLO ============ */
 function hashStr(x){let h=2166136261;for(const c of String(x)){h^=c.charCodeAt(0);h=Math.imul(h,16777619)}return h>>>0}
@@ -131,7 +161,9 @@ function weekOily(week){const o=new Set();eachUse(week,r=>{if(r.oily)o.add(r.nam
 
 /* ============ GENERATORE ============ */
 function fillSnacks(week,month,rnd,keep){
-  const fruits=shuffle(FRUITS.filter(f=>f.months.includes(month)&&f.auto!==false),rnd);
+  const invF=f=>{const it=invFind(f.n);return it?PR_W[effPriority(it)]:0};
+  const fruits=shuffle(FRUITS.filter(f=>(f.months.includes(month)&&f.auto!==false)||invF(f)>0),rnd).sort((a,b)=>invF(b)-invF(a));
+  const snInv=s=>s.ing.reduce((a,i)=>{const it=invFind(i.n);return a+(it?PR_W[effPriority(it)]:0)},0);
   const okNeeds=s=>!s.needs||stockCount(s.needs)>0;
   const cols=SNACKS.filter(s=>s.type==="colazione"&&okNeeds(s)),spus=SNACKS.filter(s=>s.type==="spuntino"&&okNeeds(s));
   let fi=0,prevC=null,prevS=null;
@@ -148,7 +180,7 @@ function fillSnacks(week,month,rnd,keep){
       const fc=c.fruit?f1:null,fs=s.fruit?(c.fruit?f2:f1):null;
       const k=mk+c.kcal+s.kcal+(fc?fc.kcal:0)+(fs?fs.kcal:0),p=mp+c.protein+s.protein+(fc?1:0)+(fs?1:0);
       const fresh=new Set([...pk(c,fc),...pk(s,fs)].filter(x=>!seen.has(x))).size;
-      const sc=Math.abs(k-KCAL_TARGET)/15+Math.max(0,PROT_MIN-p)*3+Math.max(0,p-PROT_MAX)+(c.id===prevC?4:0)+(s.id===prevS?4:0)-fresh*2.5+rnd()*.8;
+      const sc=Math.abs(k-KCAL_TARGET)/15+Math.max(0,PROT_MIN-p)*3+Math.max(0,p-PROT_MAX)+(c.id===prevC?4:0)+(s.id===prevS?4:0)-fresh*2.5-(snInv(c)+snInv(s))*2+rnd()*.8;
       if(!best||sc<best.sc)best={sc,c,s,fc,fs}}));
     if(best){d.sn={col:{id:best.c.id,f:best.fc?best.fc.id:null},spu:{id:best.s.id,f:best.fs?best.fs.id:null}};prevC=best.c.id;prevS=best.s.id;fi+=(best.fc?1:0)+(best.fs?1:0);[...pk(best.c,best.fc),...pk(best.s,best.fs)].forEach(x=>seen.add(x))}
   });
@@ -158,7 +190,8 @@ function addBoosters(week,rnd){
   week.forEach(d=>{let g=0;while(dayNut(d).p<PROT_MIN&&g++<3){let meal=slotNut(d.p).p<=slotNut(d.c).p?"p":"c";if(d[meal].x.length>=1)meal=meal==="p"?"c":"p";if(d[meal].x.length>=2)break;d[meal].x.push(order[o++%order.length]);n++}});
   return n;
 }
-function generateWeek(weekStart,seed){
+function generateWeek(weekStart,seed,opts={}){
+  const focus=opts.inv?2:1;
   const month=addDays(weekStart,0).getMonth()+1;
   const rnd=mulberry(seed*9973+Number(weekStart.replace(/-/g,"")));
   const prev=S.history[0]||null,prevIds=new Set(prev?prev.ids:[]),prevKeys=new Set(prev?prev.keys:[]),prevFam=new Set(prev&&prev.families?prev.families:[]);
@@ -167,7 +200,9 @@ function generateWeek(weekStart,seed){
   const mains=pool.filter(r=>r.role==="main"),bases=pool.filter(r=>r.role==="base"),sides=pool.filter(r=>r.role==="side");
   if(mains.length<2||bases.length<2)return{week:emptyWeek(),note:"Servono almeno 2 piatti principali e 2 basi di stagione nel ricettario."};
   const hasOily=mains.some(r=>r.oily);
-  const weight=r=>(r.fav?2.2:1)/(1+(recent.get(r.id)||0)*.6)*(r.role==="base"&&prevFam.has(r.family)?.35:1);
+  const invUse=new Map(S.recipes.map(r=>[r.id,recipeInv(r)])),invSc=new Map([...invUse].map(([k,v])=>[k,v.sc]));
+  const weight=r=>(r.fav?2.2:1)/(1+(recent.get(r.id)||0)*.6)*(r.role==="base"&&prevFam.has(r.family)?.35:1)*(1+(invSc.get(r.id)||0)*.6*focus);
+  const urgent=(S.inventory||[]).filter(it=>effPriority(it)==="breve"&&pool.some(r=>ingOf(r).some(i=>matchNames(it.name,i.n))));
   const pick=(arr,ex)=>{const c=arr.filter(r=>!ex.has(r.id));if(!c.length)return null;const tot=c.reduce((a,r)=>a+weight(r),0);let x=rnd()*tot;for(const r of c){x-=weight(r);if(x<=0)return r}return c[c.length-1]};
   const ok=(r,day)=>day<=r.fridgeDays||r.freezer;
   let best=null;
@@ -214,7 +249,9 @@ function generateWeek(weekStart,seed){
     const mealLow=nut.reduce((a,n)=>a+Math.max(0,MEAL_PROT_MIN-n.mp),0);
     const favs=[...ids].filter(id=>R(id).fav).length,rec=[...ids].reduce((a,id)=>a+(recent.get(id)||0),0);
     const cost=costOf(aggregate(week,[],[]));const costMid=(cost.min+cost.max)/2;
-    const score=noOily*25+famRepeat*8+lentils*6+overuse*8+samey*7+boosts*3+kDev/12+pShort*2+mealLow*.8-Math.min(plants,36)*3
+    const usedInv=new Set();ids.forEach(id=>(invUse.get(id)||{used:[]}).used.forEach(it=>usedInv.add(it)));const invBonus=[...usedInv].reduce((a,it)=>a+PR_W[effPriority(it)],0);
+    const urgentMiss=urgent.filter(it=>![...ids].some(id=>ingOf(R(id)).some(i=>matchNames(it.name,i.n)))).length;
+    const score=(urgentMiss*15-invBonus*6)*focus+noOily*25+famRepeat*8+lentils*6+overuse*8+samey*7+boosts*3+kDev/12+pShort*2+mealLow*.8-Math.min(plants,36)*3
       +Math.max(0,sunday.length-8)*12+Math.max(0,temps-2)*12+Math.max(0,ovenMin-120)*.3+Math.max(0,handMin-100)*.4+consec*3-favs*2+rec*1.5+sim*20+costMid*.3+rnd();
     if(!best||score<best.score)best={score,week,sim};
   }
@@ -247,8 +284,8 @@ function addStock(rid,n,where,date){const r=R(rid);const d=date||iso(new Date())
 function takeStock(rid,n){let left=n;S.stock.filter(s=>s.rid===rid).sort((a,b)=>a.exp.localeCompare(b.exp)).forEach(s=>{const t=Math.min(s.n,left);s.n-=t;left-=t});S.stock=S.stock.filter(s=>s.n>0)}
 
 /* ============ NAV ============ */
-const TITLES={settimana:"Settimana",spesa:"Lista della spesa",piano:"Piano di lavoro",ricette:"Ricette",scorte:"Scorte",spuntini:"Spuntini e dolci",guida:"Guida"};
-let view="settimana",backTo="ricette",scorteSeg="sughi",spSeg="frutta";
+const TITLES={settimana:"Settimana",spesa:"Lista della spesa",piano:"Piano di lavoro",ricette:"Ricette",scorte:"Casa",spuntini:"Spuntini e dolci",guida:"Guida"};
+let view="settimana",backTo="ricette",scorteSeg="casa",spSeg="frutta";
 function show(v){
   view=v;Object.keys(TITLES).forEach(k=>document.getElementById("v-"+k).hidden=k!==v);
   document.querySelectorAll("nav.tabbar button").forEach(b=>b.setAttribute("aria-current",b.dataset.v===v?"page":"false"));
@@ -268,7 +305,7 @@ function stockOpts(sel){const rids=[...new Set(S.stock.filter(s=>s.where==="free
   return `<option value="">— nessuno —</option>`+rids.map(id=>{const r=R(id);const avail=stockCount(id,"freezer")-plannedK(id)+(id===sel?1:0);return `<option value="${id}"${id===sel?" selected":""}>${esc(r?r.name:id)} (${Math.max(0,avail)} in freezer)</option>`}).join("")}
 function snackOpts(type,sel){const list=SNACKS.filter(s=>s.type===type);return `<option value="">— nessuno —</option>`+list.map(s=>`<option value="${s.id}"${s.id===sel?" selected":""}>${esc(s.name)}${s.needs&&!stockCount(s.needs)?" (serve farla)":""} · ${s.protein} g</option>`).join("")}
 function fruitOpts(sel){const m=weekMonth();const list=FRUITS.slice().sort((a,b)=>b.months.includes(m)-a.months.includes(m));return list.map(f=>`<option value="${f.id}"${f.id===sel?" selected":""}>${esc(f.label)}${f.months.includes(m)?"":" (fuori stagione)"}</option>`).join("")}
-function renderCostBox(el){const c=costOf(shopItems(),new Set([...S.have,...(S.pantry||[])]));el.innerHTML=`<div><div class="eyebrow">Spesa stimata alla Coop</div><div class="big num">${euroR(c.min,c.max)}</div></div><div class="small muted" style="max-width:34ch">pasti, colazioni e spuntini${c.unknown?` · ${c.unknown} articoli senza prezzo`:""} · esclusi quelli già in casa</div>`}
+function renderCostBox(el){const c=costOf(shopItems().filter(i=>!invFind(i.n)),new Set(S.have));el.innerHTML=`<div><div class="eyebrow">Spesa stimata alla Coop</div><div class="big num">${euroR(c.min,c.max)}</div></div><div class="small muted" style="max-width:34ch">pasti, colazioni e spuntini${c.unknown?` · ${c.unknown} articoli senza prezzo`:""} · esclusi quelli già in casa</div>`}
 function bar(label,val,unit,lo,hi,max){const pct=Math.min(100,val/max*100);const low=val<lo,high=val>hi;return `<div class="daybar"><div class="track"><div class="band" style="left:${lo/max*100}%;width:${(hi-lo)/max*100}%"></div><div class="fill${low||high?" low":""}" style="width:${pct}%"></div></div><div class="txt"><span>${label}</span><b class="num">${Math.round(val)} ${unit}</b></div></div>`}
 function renderVariety(){
   const pl=weekPlants(S.week,S.addons),fam=[...weekFamilies(S.week)],oily=weekOily(S.week);
@@ -311,6 +348,7 @@ function mealTile(d,i,meal){const s=d[meal];const n=slotNut(s);const m=s.m&&R(s.
     ${extra.length?`<span class="sub">con ${esc(extra.join(" · "))}</span>`:""}
     ${adds.length?`<span class="sub add">${esc(adds.join(" · "))}</span>`:""}
     ${s.n?`<span class="sub">${esc(s.n)}</span>`:""}
+    ${(()=>{const u=[...new Set(PARTS.flatMap(k=>s[k]&&R(s[k])?recipeInv(R(s[k])).used:[]))];return u.length?`<span class="sub home">da casa: ${esc(u.map(x=>x.name).join(", "))}</span>`:""})()}
     ${st?`<span class="tape ${st.k}">${st.t}</span>`:""}
   </button>`}
 function snackTile(d,i,t){const x=d.sn[t];const s=x.id&&SN(x.id);const n=snackNut(x);const f=x.f&&FRT(x.f);
@@ -452,6 +490,7 @@ function renderChecks(){
     if(Math.abs(n.k-KCAL_TARGET)>200)warns.push(`<b>${DAYS[i]}</b>: ${n.k} kcal, ${n.k>KCAL_TARGET?"sopra":"sotto"} le ${KCAL_TARGET} di più di 200.`)});
   S.week.forEach((d,i)=>["col","spu"].forEach(t=>{const s=SN(d.sn[t].id);if(s&&s.needs&&!stockCount(s.needs)&&!S.addons.includes(s.needs))warns.push(`<b>${DAYS[i]}</b>: "${esc(s.name)}" richiede ${esc(R(s.needs).name.toLowerCase())}, che non hai in casa. Mettila in programma dalla sezione Dolci.`)}));
   [...new Set(S.week.flatMap(d=>[d.p.k,d.c.k]).filter(Boolean))].filter(id=>plannedK(id)>stockCount(id,"freezer")).forEach(id=>warns.push(`<b>${esc((R(id)||{}).name||id)}</b>: in settimana ne usi ${plannedK(id)}, in freezer ne hai ${stockCount(id,"freezer")}.`));
+  const wEnd=iso(addDays(S.weekStart,4));(S.inventory||[]).filter(it=>(it.exp&&it.exp<=wEnd)||effPriority(it)==="breve").filter(it=>!weekUsesInv(it)).forEach(it=>{const rs=recipesUsing(it,true).slice(0,3).map(r=>r.name.toLowerCase());warns.push(`<b>${esc(it.name)}</b>${it.exp?` scade il ${fmtDate(new Date(it.exp+"T12:00:00"))}`:" è da consumare presto"} e non è nella settimana. ${rs.length?`Ricette di stagione che lo usano: ${esc(rs.join(", "))}. Prova "Proponi la settimana con quello che ho" nella sezione Casa.`:"Nessuna ricetta di stagione lo usa: aggiungilo a un pasto o crea una ricetta dalla sezione Casa."}`)});
   const prev=S.history[0];
   if(prev){const sim=jaccard(shopKeys(S.week,S.addons),new Set(prev.keys));if(sim>.6)warns.push(`La spesa è molto simile a quella della settimana precedente (${Math.round(sim*100)}% di ingredienti in comune).`)}
   let h="";
@@ -470,28 +509,28 @@ document.getElementById("regen").addEventListener("click",e=>{
 /* ============ VISTA SPESA ============ */
 let editingPrice=null;
 function renderShop(){
-  const all=shopItems(),pantry=new Set(S.pantry||[]),have=new Set(S.have);
-  const items=all.filter(i=>!pantry.has(i.k)),inPantry=all.filter(i=>pantry.has(i.k));
+  const all=shopItems(),have=new Set(S.have);
+  const items=all.filter(i=>!invFind(i.n)),inPantry=all.filter(i=>invFind(i.n));
   const todo=items.filter(i=>!have.has(i.k)&&i.r!=="Basi").length;
   renderCostBox(document.getElementById("shopCost"));
   const prev=S.history[0];
   document.getElementById("shopDiff").innerHTML=prev?(()=>{const cur=shopKeys(S.week,S.addons);const old=new Set(prev.keys);const nw=[...cur].filter(k=>!old.has(k)).length;return `<div class="infobox small">Rispetto alla settimana precedente: <b>${nw} ingredienti nuovi</b> su ${cur.size}.</div>`})():"";
   const m=weekMonth();const fruitSwap=i=>i.src.includes("frutta")?`<select class="swap" data-swap="${esc(i.k)}" aria-label="Sostituisci ${esc(i.n)}"><option value="">non l'hai presa? sostituisci con…</option>${FRUITS.slice().sort((a,b)=>b.months.includes(m)-a.months.includes(m)).filter(f=>f.n.toLowerCase()!==i.k).map(f=>`<option value="${f.id}">${esc(f.label)}${f.months.includes(m)?"":" (fuori stagione)"}</option>`).join("")}</select>`:"";
-  let h=`<div class="eyebrow">${todo} da comprare · ${items.filter(i=>have.has(i.k)).length} già in casa questa settimana${inPantry.length?` · ${inPantry.length} in dispensa`:""}</div>`;
+  let h=`<div class="eyebrow">${todo} da comprare · ${items.filter(i=>have.has(i.k)).length} già in casa questa settimana${inPantry.length?` · ${inPantry.length} già in casa`:""}</div>`;
   REPARTI.forEach(rep=>{const its=items.filter(i=>i.r===rep);if(!its.length)return;
     h+=`<div class="rep">${rep==="Basi"?"Basi: probabilmente le hai già (non nel costo)":rep}</div>`+its.map(i=>{const c=rep==="Basi"?null:itemCost(i);const e=priceEntry(i.n);
       return `<div class="item${have.has(i.k)?" have":""}"><input type="checkbox" id="s-${esc(i.k)}" data-k="${esc(i.k)}" ${have.has(i.k)?"checked":""}><label for="s-${esc(i.k)}">${esc(i.n)}</label><span class="qty">${esc(mergeQ(i.q))}</span>
-      <div class="src"><span>${esc(i.src.join(" · "))}</span><span class="row" style="gap:10px">${rep==="Basi"?"":`<button class="price" type="button" data-pk="${esc(i.k)}">${c?`${euroD(c.min,c.max)}${c.e.bulk?"":` · ${c.packs} conf.`}`:"aggiungi prezzo"}</button>`}<button class="linkbtn" type="button" data-pan="${esc(i.k)}">in dispensa</button></span></div>
+      <div class="src"><span>${esc(i.src.join(" · "))}</span><span class="row" style="gap:10px">${rep==="Basi"?"":`<button class="price" type="button" data-pk="${esc(i.k)}">${c?`${euroD(c.min,c.max)}${c.e.bulk?"":` · ${c.packs} conf.`}`:"aggiungi prezzo"}</button>`}<button class="linkbtn" type="button" data-pan="${esc(i.k)}">ce l'ho in casa</button></span></div>
       ${fruitSwap(i)?`<div class="src">${fruitSwap(i)}</div>`:""}
       ${editingPrice===i.k?`<div class="priceedit"><label>Confezione<input type="text" id="pe-size" value="${e?esc(e.unit==="pack"?"1":`${e.size} ${e.unit}`):""}" placeholder="500 g"></label><label>Prezzo €<input type="number" step="0.01" min="0" id="pe-price" value="${e?((e.min+e.max)/2).toFixed(2):""}"></label><button class="btn sm" type="button" id="pe-save">Salva</button></div>`:""}</div>`}).join("")});
   if(!all.length)h+=`<p class="muted" style="margin-top:8px">La settimana è vuota.</p>`;
-  if(inPantry.length)h+=`<div class="rep">In dispensa: non in lista e non nel costo</div><p class="small muted" style="margin:2px 0 6px">Scorte che durano settimane. Controlla di averne abbastanza; quando finiscono tocca "finito" e tornano nella lista.</p>`+inPantry.map(i=>`<div class="item have"><span></span><label>${esc(i.n)}</label><span class="qty">${esc(mergeQ(i.q))}</span><div class="src"><span>serve per: ${esc(i.src.join(" · "))}</span><button class="linkbtn" type="button" data-unpan="${esc(i.k)}">finito</button></div></div>`).join("");
+  if(inPantry.length)h+=`<div class="rep">Già in casa: non in lista e non nel costo</div><p class="small muted" style="margin:2px 0 6px">Dall'inventario della sezione Casa. Controlla di averne abbastanza; se è finito tocca "finito" e torna nella lista.</p>`+inPantry.map(i=>{const it=invFind(i.n);return `<div class="item have"><span></span><label>${esc(i.n)}</label><span class="qty">${esc(mergeQ(i.q))}</span><div class="src"><span>in casa: ${esc(it.name)}${it.qty?" · "+esc(it.qty):""} (${it.where})</span><button class="linkbtn" type="button" data-unpan="${esc(it.id)}">finito</button></div></div>`}).join("");
   h+=`<p class="small muted" style="margin-top:12px">${PRICE_SOURCE}</p>`;
   const el=document.getElementById("shop");el.innerHTML=h;
   el.querySelectorAll("input[type=checkbox]").forEach(cb=>cb.addEventListener("change",()=>{const s=new Set(S.have);cb.checked?s.add(cb.dataset.k):s.delete(cb.dataset.k);S.have=[...s];save();renderShop()}));
   el.querySelectorAll("[data-pk]").forEach(b=>b.addEventListener("click",()=>{editingPrice=editingPrice===b.dataset.pk?null:b.dataset.pk;renderShop()}));
-  el.querySelectorAll("[data-pan]").forEach(b=>b.addEventListener("click",()=>{S.pantry=[...new Set([...(S.pantry||[]),b.dataset.pan])];save();toast("In dispensa: non comparirà più nella lista finché non tocchi \"finito\"");renderShop()}));
-  el.querySelectorAll("[data-unpan]").forEach(b=>b.addEventListener("click",()=>{S.pantry=(S.pantry||[]).filter(k=>k!==b.dataset.unpan);save();toast("Tornato nella lista della spesa");renderShop()}));
+  el.querySelectorAll("[data-pan]").forEach(b=>b.addEventListener("click",()=>{const it=all.find(x=>x.k===b.dataset.pan);const where=it&&it.r==="Surgelati"?"freezer":it&&["Frigo","Ortofrutta","Pesce"].includes(it.r)?"frigo":"dispensa";S.inventory.push({id:uid("v"),name:it?it.n:b.dataset.pan,qty:"",where,exp:null,priority:where==="dispensa"?"lungo":"auto",added:iso(new Date())});save();toast("Aggiunto a Casa: non è più nella lista");renderShop()}));
+  el.querySelectorAll("[data-unpan]").forEach(b=>b.addEventListener("click",()=>{S.inventory=S.inventory.filter(x=>x.id!==b.dataset.unpan);save();toast("Tolto da Casa: torna nella lista");renderShop()}));
   el.querySelectorAll("[data-swap]").forEach(sel=>sel.addEventListener("change",()=>{if(!sel.value)return;const from=sel.dataset.swap;let n=0;
     S.week.forEach(d=>["col","spu"].forEach(t=>{const x=d.sn&&d.sn[t];if(x&&x.f&&FRT(x.f)&&FRT(x.f).n.toLowerCase()===from){x.f=sel.value;n++}}));save();toast(`Sostituita in ${n} ${n===1?"spuntino":"spuntini"}`);renderShop()}));
   const ps=el.querySelector("#pe-save");ps&&ps.addEventListener("click",()=>{const c=canon(el.querySelector("#pe-size").value||"1");const p=parseFloat(String(el.querySelector("#pe-price").value).replace(",","."));
@@ -511,7 +550,7 @@ function renderExtras(){
 document.getElementById("addExtra").addEventListener("click",()=>{S.extras.push({q:"",n:"",r:"Ortofrutta"});save();renderExtras()});
 document.getElementById("clearHave").addEventListener("click",()=>{S.have=[];save();renderShop()});
 document.getElementById("copyShop").addEventListener("click",()=>{
-  const have=new Set([...S.have,...(S.pantry||[])]),items=shopItems().filter(i=>!have.has(i.k));const c=costOf(items);
+  const have=new Set(S.have),items=shopItems().filter(i=>!have.has(i.k)&&!invFind(i.n));const c=costOf(items);
   const txt=REPARTI.map(rep=>{const its=items.filter(i=>i.r===rep);return its.length?rep.toUpperCase()+"\n"+its.map(i=>`- ${i.n}${i.q.length?" ("+mergeQ(i.q)+")":""}`).join("\n"):""}).filter(Boolean).join("\n\n")+`\n\nStima Coop: ${euroR(c.min,c.max)}`;
   const fb=document.getElementById("copyFallback");const fail=()=>{fb.hidden=false;fb.value=txt;fb.focus();fb.select();toast("Seleziona e copia dal riquadro")};
   try{navigator.clipboard.writeText(txt).then(()=>toast("Lista copiata"),fail)}catch(e){fail()}
@@ -625,9 +664,9 @@ function showDetail(id){
   document.getElementById("viewTitle").textContent=ROLE[r.role]||"Ricetta";drawCanvases();window.scrollTo(0,0);
 }
 let draft=null;
-function showEdit(id,role){
+function showEdit(id,role,prefill){
   const src=id?R(id):{id:null,name:"",role:role||"main",protein:20,kcal:300,portions:4,prepMin:10,cookMin:20,equip:"fuochi",temp:180,fridgeDays:3,freezer:true,family:"",months:M("all"),fav:false,spicy:false,freezerMonths:3,uses:"",fermDays:7,fridgeMonths:3,salt:"",store:{dispensa:3,frigo:5,freezer:3},sugar:0,ing:[{q:"",n:"",r:"Ortofrutta"}],steps:[],cons:"",par:"",think:"",photo:null};
-  draft=clone(src);if(!draft.store)draft.store={dispensa:0,frigo:0,freezer:0};
+  draft=clone(src);if(!draft.store)draft.store={dispensa:0,frigo:0,freezer:0};if(!id&&prefill)draft.ing=prefill.concat([{q:"",n:"",r:"Ortofrutta"}]);
   document.getElementById("rList").hidden=true;document.getElementById("rDetail").hidden=true;
   const f=document.getElementById("rEdit");f.hidden=false;
   document.getElementById("viewTitle").textContent=id?"Modifica":"Nuova ricetta";
@@ -735,7 +774,8 @@ function renderGrid(gridId,role,filter,from,emptyMsg){const m=weekMonth();const 
   const g=document.getElementById(gridId);g.innerHTML=list.map(card).join("")||`<p class="muted">${emptyMsg}</p>`;bindCards(g,from);drawCanvases()}
 function renderScorte(){
   document.querySelectorAll("[data-seg]").forEach(b=>{b.setAttribute("aria-pressed",b.dataset.seg===scorteSeg);b.onclick=()=>{scorteSeg=b.dataset.seg;renderScorte()}});
-  document.getElementById("seg-sughi").hidden=scorteSeg!=="sughi";document.getElementById("seg-fermentati").hidden=scorteSeg!=="fermentati";
+  document.getElementById("seg-sughi").hidden=scorteSeg!=="sughi";document.getElementById("seg-fermentati").hidden=scorteSeg!=="fermentati";document.getElementById("seg-casa").hidden=scorteSeg!=="casa";
+  if(scorteSeg==="casa")return renderCasa();
   if(scorteSeg==="sughi"){
     const el=document.getElementById("stockList");
     el.innerHTML=`<h3 style="margin-bottom:6px">In freezer adesso</h3>`+stockRows(s=>s.where==="freezer"&&(!R(s.rid)||!["dolce","fermento"].includes(R(s.rid).role)),"Il freezer è vuoto. Prepara un sugo qui sotto, oppure metti nelle scorte le porzioni che avanzano dalla settimana.");
@@ -779,6 +819,53 @@ function renderFermGuide(){
   </ul>
   <p class="small muted"><b>Sicurezza.</b> Quello che rende sicure le verdure fermentate è l'acidità che producono i lattobacilli: sotto pH 4,6 il Clostridium botulinum non cresce, e le verdure ben fermentate arrivano intorno a 3,5–4. Per questo contano la percentuale di sale giusta, le verdure sempre sommerse e un tempo sufficiente. Se vuoi una conferma, le cartine per il pH costano pochi euro.</p>
   <p class="small muted"><b>Conservazione.</b> In frigo a 4 °C, sempre sommerse nel loro liquido, con posate pulite: crauti fino a 6 mesi, carote e cavolfiore 3 mesi, cetrioli e kimchi 2 mesi. Col tempo diventano più acide e morbide.</p>`;
+}
+
+
+/* ============ CASA: DISPENSA, FRIGO, FREEZER ============ */
+let invDraft=null,invRegenArmed=false;
+function knownNames(){const n=new Set();S.recipes.forEach(r=>r.ing.forEach(i=>i.r!=="Basi"&&n.add(i.n)));SEASONAL_VEG.forEach(v=>n.add(v.n));FRUITS.forEach(f=>n.add(f.n));SNACKS.forEach(x=>x.ing.forEach(i=>n.add(i.n)));BOOSTERS.forEach(b=>b.ing&&n.add(b.ing.n));return[...n].sort((a,b)=>a.localeCompare(b))}
+function renderCasa(){
+  const el=document.getElementById("seg-casa");
+  if(!invDraft)invDraft={id:null,name:"",qty:"",where:"dispensa",exp:"",priority:"auto"};
+  const inv=S.inventory||[];const today=iso(new Date());
+  const groups={breve:[],medio:[],lungo:[]};inv.forEach(it=>groups[effPriority(it)].push(it));
+  const usedN=inv.filter(weekUsesInv).length;
+  const row=it=>{const d=it.exp?daysUntil(it.exp):null;const basi=isBasi(it),rs=basi?[]:recipesUsing(it),sns=snacksUsing(it);const m=weekMonth();const inW=weekUsesInv(it);
+    return `<div class="invrow"><div class="stack" style="gap:4px"><div><b>${esc(it.name)}</b>${it.qty?` <span class="muted small">· ${esc(it.qty)}</span>`:""}</div>
+      <div class="sub">${it.where}${it.exp?` · <span class="${d<0?"late":d<=3?"soon":""}">${d<0?"scaduto il":"scade il"} ${fmtDate(new Date(it.exp+"T12:00:00"))}${d>=0&&d<=7?` (tra ${d} ${d===1?"giorno":"giorni"})`:""}</span>`:""} · ${it.priority==="auto"?(it.exp?"priorità dalla scadenza":"nessuna scadenza: medio termine"):PR_LABEL[it.priority]||""}${inW?` · <span class="badge">nella settimana</span>`:""}</div>
+      ${rs.length?`<div class="row" style="gap:6px">${rs.slice(0,4).map(r=>`<button class="chip sm${inSeason(r,m)?"":" off"}" type="button" data-rid="${r.id}">${esc(r.name)}${inSeason(r,m)?"":" · fuori stagione"}</button>`).join("")}</div>`:basi?`<div class="small muted">È tra le basi (olio, sale, spezie): lo do sempre per presente e non entra nella spesa stimata.</div>`:sns.length?"":`<div class="small muted">Nessuna ricetta lo usa ancora. <button class="linkbtn" type="button" data-newrec="${it.id}">Crea una ricetta con questo</button></div>`}
+      ${sns.length?`<div class="small muted">In colazioni e spuntini: ${esc(sns.slice(0,3).map(x=>x.name.toLowerCase()).join(" · "))}</div>`:""}</div>
+      <div class="row" style="gap:6px;align-self:start"><button class="btn ghost sm" type="button" data-iedit="${it.id}">Modifica</button><button class="btn warn sm" type="button" data-idone="${it.id}">Finito</button></div></div>`};
+  el.innerHTML=`<p class="muted small">Quello che hai in casa: l'app lo usa per scegliere le ricette della settimana (prima le cose da consumare presto) e lo toglie dalla lista della spesa.</p>
+   <div class="panel stack"><h3>${invDraft.id?"Modifica":"Aggiungi in dispensa, frigo o freezer"}</h3>
+    <label class="f">Cosa<input type="text" id="inv-name" list="ingList" value="${esc(invDraft.name)}" placeholder="Es. pasta di lenticchie rosse, ricotta, zucchine"></label>
+    <datalist id="ingList">${knownNames().map(n=>`<option value="${esc(n)}">`).join("")}</datalist>
+    <div class="two"><label class="f">Quantità (facoltativa)<input type="text" id="inv-qty" value="${esc(invDraft.qty)}" placeholder="Es. 500 g, 2 confezioni"></label>
+      <label class="f">Scadenza (facoltativa)<input type="date" id="inv-exp" value="${esc(invDraft.exp||"")}"></label></div>
+    <div class="f"><span class="small" style="font-weight:700;color:var(--ink-2)">Dove</span><div class="row">${["dispensa","frigo","freezer"].map(w=>`<button class="chip" type="button" data-iwhere="${w}" aria-pressed="${invDraft.where===w}">${w}</button>`).join("")}</div></div>
+    <div class="f"><span class="small" style="font-weight:700;color:var(--ink-2)">Quando vuoi consumarlo</span><div class="row">${[["auto","dalla scadenza"],["breve","presto (questa settimana)"],["medio","entro un mese"],["lungo","senza fretta"]].map(([k,l])=>`<button class="chip" type="button" data-iprio="${k}" aria-pressed="${invDraft.priority===k}">${l}</button>`).join("")}</div></div>
+    <div class="row"><button class="btn sm" type="button" id="inv-save">${invDraft.id?"Salva":"Aggiungi"}</button>${invDraft.id?`<button class="btn ghost sm" type="button" id="inv-cancel">Annulla</button>`:""}</div>
+    <p class="small muted">Scrivi il nome come nelle ricette (il suggerimento compare mentre scrivi): così l'app lo riconosce. Funziona anche "granulare di soia" o "pasta 100% lenticchie".</p></div>
+   <div class="okbox stack"><div>La settimana in corso usa <b>${usedN} su ${inv.length}</b> cose che hai in casa.</div>
+    <div class="row"><button class="btn sm" type="button" id="inv-regen">Proponi la settimana con quello che ho</button></div>
+    <p class="small muted">Rifà pranzi, cene, colazioni e spuntini della settimana in corso dando la precedenza a quello che hai, soprattutto a ciò che è da consumare presto. Le settimane successive lo fanno da sole.</p></div>
+   ${inv.length?["breve","medio","lungo"].filter(k=>groups[k].length).map(k=>`<div class="panel"><h3 style="margin-bottom:4px">${k==="breve"?"Da consumare presto":k==="medio"?"Nel medio termine":"Senza fretta"}</h3>${groups[k].sort((a,b)=>(a.exp||"9999").localeCompare(b.exp||"9999")).map(row).join("")}</div>`).join(""):`<p class="muted">Ancora niente in casa. Aggiungi qui sopra quello che hai.</p>`}`;
+  const g=q=>el.querySelector(q);
+  const read=()=>{invDraft.name=g("#inv-name").value;invDraft.qty=g("#inv-qty").value;invDraft.exp=g("#inv-exp").value||""};
+  el.querySelectorAll("[data-iwhere]").forEach(b=>b.addEventListener("click",()=>{read();invDraft.where=b.dataset.iwhere;renderCasa()}));
+  el.querySelectorAll("[data-iprio]").forEach(b=>b.addEventListener("click",()=>{read();invDraft.priority=b.dataset.iprio;renderCasa()}));
+  g("#inv-save").addEventListener("click",()=>{read();const name=invDraft.name.trim();if(!name){toast("Scrivi cosa hai in casa");return}
+    const it={...invDraft,name,qty:invDraft.qty.trim(),exp:invDraft.exp||null};
+    if(it.id){const k=S.inventory.findIndex(x=>x.id===it.id);S.inventory[k]={...S.inventory[k],...it}}else S.inventory.push({...it,id:uid("v"),added:iso(new Date())});
+    const rs=recipesUsing(it);invDraft=null;save();toast(rs.length?`Salvato: ${rs.length} ${rs.length===1?"ricetta lo usa":"ricette lo usano"}`:"Salvato. Nessuna ricetta lo usa ancora");renderCasa()});
+  const c=g("#inv-cancel");c&&c.addEventListener("click",()=>{invDraft=null;renderCasa()});
+  el.querySelectorAll("[data-iedit]").forEach(b=>b.addEventListener("click",()=>{const it=S.inventory.find(x=>x.id===b.dataset.iedit);invDraft={...it,exp:it.exp||""};renderCasa();window.scrollTo(0,0)}));
+  el.querySelectorAll("[data-idone]").forEach(b=>b.addEventListener("click",()=>{S.inventory=S.inventory.filter(x=>x.id!==b.dataset.idone);save();toast("Tolto da Casa");renderCasa()}));
+  el.querySelectorAll("[data-rid]").forEach(b=>b.addEventListener("click",()=>{backTo="scorte";view="ricette";document.getElementById("v-scorte").hidden=true;document.getElementById("v-ricette").hidden=false;showDetail(b.dataset.rid)}));
+  el.querySelectorAll("[data-newrec]").forEach(b=>b.addEventListener("click",()=>{const it=S.inventory.find(x=>x.id===b.dataset.newrec);backTo="scorte";view="ricette";document.getElementById("v-scorte").hidden=true;document.getElementById("v-ricette").hidden=false;showEdit(null,"main",[{q:it.qty||"",n:it.name,r:it.where==="dispensa"?"Dispensa":it.where==="freezer"?"Surgelati":"Frigo"}])}));
+  g("#inv-regen").addEventListener("click",e=>{if(!invRegenArmed){invRegenArmed=true;e.target.textContent="Tocca di nuovo: sostituisce la settimana in corso";setTimeout(()=>{invRegenArmed=false;const b=document.getElementById("inv-regen");if(b)b.textContent="Proponi la settimana con quello che ho"},3500);return}
+    invRegenArmed=false;S.seed=(S.seed||1)+1;const gw=generateWeek(S.weekStart,S.seed,{inv:true});S.week=gw.week;S.have=[];save();toast(gw.note||"Nuova settimana con quello che hai in casa");show("settimana")});
 }
 
 /* ============ SPUNTINI E DOLCI ============ */

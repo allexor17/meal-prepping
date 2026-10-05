@@ -260,3 +260,13 @@ select{max-width:100%;text-overflow:ellipsis}
 .linkbtn{font:inherit;font-size:.8rem;background:none;border:0;color:var(--fridge);text-decoration:underline;cursor:pointer;padding:2px 4px}
 .supp-add{justify-self:start}
 .swap{font-size:14px;padding:4px 6px;max-width:100%;margin-top:2px}
+/* casa */
+.invrow{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.invrow:last-child{border-bottom:0}
+.invrow b{font-family:var(--f-display);font-size:.95rem}
+.invrow .sub{font-size:.8rem;color:var(--ink-3)}
+.invrow .late{color:var(--danger);font-weight:700}.invrow .soon{color:var(--accent-ink);font-weight:700}
+.chip.sm{font-size:.78rem;padding:3px 9px}
+.tile .sub.home{color:var(--fridge)}
+@media (max-width:520px){.invrow{grid-template-columns:1fr}}
+.chip.sm.off{opacity:.6}

@@ -6,7 +6,7 @@ App personale di meal prep (PWA). File statici, nessuna build: Netlify pubblica 
 - `style.css` · stile (Libre Baskerville per i titoli, Lato per il testo)
 - `data.js` · ricettario (pasti, cereali, sughi, fermentati, dolci), frutta di stagione, colazioni e spuntini, obiettivi nutrizionali, mappa delle piante
 - `prices.js` · prezzi Coop stimati
-- `app.js` · generatore settimanale, spesa, piano, ricette, scorte, dolci
+- `app.js` · generatore settimanale, spesa, piano, ricette, Casa (inventario di dispensa/frigo/freezer con scadenze e priorità, sughi da freezer, fermentati), dolci
 - `extras.js` · guida frigo e illustrazioni
 - `sw.js` · funzionamento offline (cambiare VERSION a ogni aggiornamento)
 

@@ -7,11 +7,11 @@
  oily: pesce azzurro (omega-3 EPA/DHA) · spicy: piccante (mai proposto)
  store (dolci): giorni in dispensa / giorni in frigo / mesi in freezer
  sugar: zuccheri aggiunti per pezzo (g) */
-const LIB_VERSION=6;
+const LIB_VERSION=7;
 const REPARTI=["Ortofrutta","Pesce","Frigo","Surgelati","Dispensa","Panetteria","Basi"];
 function M(r){if(Array.isArray(r))return r;if(r==="all")return[1,2,3,4,5,6,7,8,9,10,11,12];const[a,b]=r.split("-").map(Number);const o=[];let m=a;for(;;){o.push(m);if(m===b)break;m=m%12+1}return o}
 function I(list){return list.map(s=>{const[q,n,r]=s.split("|");return{q,n,r}})}
-const FAMILY_LABEL={frumento:"frumento",orzo:"orzo",riso:"riso",mais:"mais",saraceno:"grano saraceno",miglio:"miglio",quinoa:"quinoa"};
+const FAMILY_LABEL={legumi:"pasta di legumi",frumento:"frumento",orzo:"orzo",riso:"riso",mais:"mais",saraceno:"grano saraceno",miglio:"miglio",quinoa:"quinoa"};
 const LIB=[
 /* ---------- BASI: 5 porzioni da 55 g ---------- */
 {id:"farro",name:"Farro perlato",role:"base",family:"frumento",portions:5,protein:8,kcal:185,prepMin:5,cookMin:25,equip:"fuochi",fridgeDays:4,freezer:true,months:M("all"),
@@ -49,6 +49,19 @@ const LIB=[
  ing:I(["275 g|bulgur|Dispensa"]),steps:["Porta a bollore acqua salata (due volte il volume del bulgur).","Versa il bulgur, 10–12 minuti a fuoco basso col coperchio, poi 5 minuti a fuoco spento.","Sgrana con la forchetta e stendi a raffreddare."],
  cons:"Frigo 4 giorni, freezer 3 mesi.",par:"Pronto in un quarto d'ora.",think:"Il bulgur è grano duro precotto e spezzato: è frumento, come farro e couscous. Per variare davvero, abbinalo a un cereale di un'altra famiglia.",
  draw:{vessel:"bowl",bowl:"#5B4A3A",base:"#C9A064",base2:"#B88E52",pieces:[{t:"grain",c:"#D6B27A",n:130,s:.028}]}},
+
+{id:"pasta_lenticchie",name:"Pasta di lenticchie rosse",role:"base",family:"legumi",portions:5,protein:14,kcal:185,prepMin:5,cookMin:8,equip:"fuochi",fridgeDays:3,freezer:false,months:M("all"),
+ ing:I(["275 g|pasta di lenticchie rosse|Dispensa"]),steps:["Cuocila 1–2 minuti meno del tempo in confezione: si sfalda più facilmente della pasta di grano.","Scolala delicatamente, condiscila subito con un filo d'olio perché non si incolli.","Stendila su un vassoio a raffreddare, poi in 5 porzioni.","Scaldala in padella col sugo, mescolando piano."],
+ cons:"Frigo 3 giorni. In freezer diventa farinosa.",par:"Cuoce in pochi minuti.",think:"Conta come legume, non come cereale: quasi il doppio delle proteine della pasta di grano, ma senza glutine e con un sapore più deciso.",
+ draw:{vessel:"plate",pieces:[{t:"penne",c:"#D9874A",n:28,s:.12}]}},
+{id:"pasta_piselli",name:"Pasta di piselli",role:"base",family:"legumi",portions:5,protein:12,kcal:185,prepMin:5,cookMin:8,equip:"fuochi",fridgeDays:3,freezer:false,months:M("all"),
+ ing:I(["275 g|pasta di piselli|Dispensa"]),steps:["Cuocila 1–2 minuti meno del tempo in confezione.","Scola con delicatezza e condisci subito con un filo d'olio.","Stendila a raffreddare e dividi in 5 porzioni."],
+ cons:"Frigo 3 giorni.",par:"Cuoce in pochi minuti.",think:"Con un sugo di pomodoro e verdure fa da piatto unico: base e proteine insieme.",
+ draw:{vessel:"plate",pieces:[{t:"penne",c:"#9DBB5A",n:28,s:.12}]}},
+{id:"pasta_verdure",name:"Pasta agli spinaci, broccoli e basilico",role:"base",family:"frumento",portions:5,protein:7,kcal:190,prepMin:5,cookMin:11,equip:"fuochi",fridgeDays:4,freezer:true,months:M("all"),
+ ing:I(["275 g|pasta agli spinaci, broccoli e basilico|Dispensa"]),steps:["Cuocila 2 minuti meno del tempo in confezione.","Scola, filo d'olio, stendila a raffreddare.","Dividi in 5 porzioni."],
+ cons:"Frigo 4 giorni, freezer 2 mesi al dente.",par:"Bolle da sola.",think:"Le verdure in polvere danno colore, ma in 55 g di pasta sono poche: per il conto delle piante resta frumento.",
+ draw:{vessel:"plate",pieces:[{t:"penne",c:"#6E9A4A",n:28,s:.12}]}},
 
 /* ---------- CONTORNI ---------- */
 {id:"verd_aut",name:"Verdure d'autunno al forno",role:"side",portions:4,protein:4,kcal:170,prepMin:15,cookMin:40,equip:"forno",temp:200,fridgeDays:4,freezer:false,months:M("9-12"),
@@ -226,6 +239,17 @@ const LIB=[
  steps:["Cipolla e rosmarino nell'olio.","Zucca a cubi, lenticchie e 1,2 litri d'acqua: 25 minuti.","Frulla col minipimer, sala."],
  cons:"Frigo 4 giorni, freezer 3 mesi.",par:"Sobbolle da sola.",think:"Le lenticchie rosse, senza buccia, si sciolgono e addensano: non servono patate.",
  draw:{vessel:"bowl",bowl:"#26394A",base:"#E8892E",base2:"#DB7A22",pieces:[{t:"swirl",c:"#F6EBD8",n:1,s:.5},{t:"dot",c:"#3F6B3A",n:12,s:.02}]}},
+
+{id:"ragu_soia",name:"Ragù di soia granulare",role:"main",portions:5,protein:22,kcal:210,prepMin:15,cookMin:30,equip:"fuochi",fridgeDays:4,freezer:true,months:M("all"),
+ ing:I(["200 g|soia granulare|Dispensa","1|cipolla|Ortofrutta","1|carote|Ortofrutta","1 costa|sedano|Ortofrutta","700 g|passata di pomodoro|Dispensa","2 cucchiai|salsa di soia|Dispensa"]),
+ steps:["Copri la soia granulare con acqua bollente (o brodo vegetale) e lasciala 10 minuti; scolala e strizzala bene con le mani.","Trita cipolla, carota e sedano e soffriggi 8 minuti.","Aggiungi la soia e rosolala 5 minuti a fuoco vivo con la salsa di soia: deve asciugarsi e prendere colore.","Passata e un bicchiere d'acqua, 25 minuti a fuoco basso. Sala alla fine."],
+ cons:"Frigo 4 giorni, freezer 3 mesi.",par:"Sobbolle da solo mentre fai altro.",think:"La soia granulare è farina di soia sgrassata ed estrusa: a secco ha circa 50 g di proteine ogni 100 g. Idratata triplica il peso, per questo 200 g bastano per 5 porzioni.",
+ draw:{vessel:"bowl",bowl:"#3A2E28",base:"#A8452A",base2:"#93391F",pieces:[{t:"grain",c:"#8A5A3A",n:110,s:.03},{t:"cube",c:"#E07A2B",n:6,s:.05}]}},
+{id:"polp_soia",name:"Polpette di soia granulare e spinaci",role:"main",portions:4,protein:21,kcal:245,prepMin:20,cookMin:20,equip:"forno",temp:200,fridgeDays:3,freezer:true,months:M("all"),
+ ing:I(["120 g|soia granulare|Dispensa","300 g|spinaci surgelati|Surgelati","1|uova|Frigo","30 g|parmigiano grattugiato|Frigo","70 g|pangrattato|Dispensa","1 spicchio|aglio|Ortofrutta"]),
+ steps:["Idrata la soia in acqua bollente 10 minuti, poi strizzala benissimo.","Scongela e strizza gli spinaci, tritali.","Impasta soia, spinaci, uovo, parmigiano, aglio grattugiato, sale e 40 g di pangrattato.","20 polpette passate nel pangrattato rimasto, teglia unta, 200 °C per 20 minuti girandole a metà."],
+ cons:"Frigo 3 giorni, freezer 3 mesi: prima sul vassoio, poi in sacchetto.",par:"L'impasto si fa a mano mentre altro cuoce.",think:"Perché strizzare tanto la soia? Trattiene acqua come una spugna: se resta bagnata, le polpette si sfaldano in forno.",
+ draw:{vessel:"plate",pieces:[{t:"ball",c:"#8E6A3A",n:9,s:.13},{t:"leafy",c:"#2F5E28",n:6,s:.1}]}},
 
 /* ---------- SCORTE DA FREEZER ---------- */
 {id:"s_ragu_lenticchie",name:"Ragù di lenticchie",role:"scorta",portions:8,protein:10,kcal:180,prepMin:15,cookMin:45,equip:"fuochi",freezerMonths:3,months:M("all"),uses:"pasta, riso, polenta, patate al forno",
@@ -510,7 +534,7 @@ const PLANT={
  "orzo perlato":"orzo","riso integrale":"riso","riso":"riso","farina di mais per polenta":"mais","grano saraceno":"grano saraceno","miglio":"miglio","quinoa":"quinoa","fiocchi d'avena":"avena",
  "ceci":"ceci","hummus":"ceci","lenticchie rosse decorticate":"lenticchie","lenticchie secche":"lenticchie","fagioli borlotti":"fagioli","fagioli cannellini":"fagioli","piselli surgelati":"piselli",
  "tofu naturale":"soia","tofu affumicato":"soia","tempeh":"soia","edamame surgelati":"soia","bevanda di soia":"soia","yogurt di soia":"soia",
- "noci":"noci","mandorle":"mandorle","semi di chia":"chia","germogli misti":"germogli","bulgur":"frumento","bevanda di avena":"avena","yogurt magro bianco":null,"crema 100% nocciole":"nocciole","burro di arachidi":"arachidi","semi di zucca":"semi di zucca","semi di girasole":"girasole","semi di sesamo":"sesamo",
+ "noci":"noci","mandorle":"mandorle","semi di chia":"chia","germogli misti":"germogli","soia granulare":"soia","pasta di lenticchie rosse":"lenticchie","pasta di piselli":"piselli","pasta agli spinaci, broccoli e basilico":"frumento","bulgur":"frumento","bevanda di avena":"avena","yogurt magro bianco":null,"crema 100% nocciole":"nocciole","burro di arachidi":"arachidi","semi di zucca":"semi di zucca","semi di girasole":"girasole","semi di sesamo":"sesamo",
  "latte di cocco":"cocco","datteri":"datteri","cacao amaro":"cacao","cioccolato fondente 85%":"cacao","olive nere":"olive","capperi":"capperi",
  "pelati":"pomodoro","passata di pomodoro":"pomodoro","concentrato di pomodoro":"pomodoro","pomodori maturi":"pomodoro",
  "spinaci surgelati":"spinaci","spinaci freschi":"spinaci","cipolla rossa":"cipolla","cipolla":"cipolla","cipollotti":"cipolla","zucca":"zucca","patate":"patata",

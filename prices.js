@@ -148,6 +148,11 @@ const PRICES={
  "bevanda di avena":{size:1000,unit:"ml",min:1.65,max:2.20},
  "yogurt magro bianco":{size:500,unit:"g",min:0.89,max:1.40},
  "germogli misti":{size:1,unit:"pack",min:1.95,max:2.40},
- "fichi d'india":{size:1,unit:"pz",min:0.34,max:0.60,bulk:true}
+ "fichi d'india":{size:1,unit:"pz",min:0.34,max:0.60,bulk:true},
+ // Ottobre: dispensa
+ "soia granulare":{size:500,unit:"g",min:2.50,max:4.50},
+ "pasta di lenticchie rosse":{size:250,unit:"g",min:1.60,max:2.80},
+ "pasta di piselli":{size:250,unit:"g",min:1.80,max:2.90},
+ "pasta agli spinaci, broccoli e basilico":{size:250,unit:"g",min:1.50,max:2.60}
 };
 const PRICE_SOURCE="Stime da prezzi online Coop (Unicoop Firenze) e dal tuo scontrino Coop del 27 settembre 2026. Tocca un prezzo per correggerlo.";
