@@ -1,20 +1,20 @@
-// Salva l'app sul telefono per usarla offline. Cambia VERSION a ogni aggiornamento.
-// Cancella solo le proprie cache: sullo stesso sito vive anche /lavatrice/ (Oblò).
-const VERSION = "mealprep-v11";
-const CORE = ["./", "./index.html", "./style.css", "./data.js", "./prices.js", "./app.js", "./extras.js", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
+// Oblò · funzionamento offline. Cambia VERSION a ogni aggiornamento.
+const VERSION = "oblo-v1";
+const CORE = ["./", "./index.html", "./style.css", "./data.js", "./scienza.js", "./engine.js", "./app.js", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("mealprep-") && k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("oblo-") && k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 self.addEventListener("fetch", e => {
   const req = e.request;
   if (req.method !== "GET") return;
   const url = new URL(req.url);
+  const scope = new URL(self.registration.scope);
   // File dell'app: prima la rete (così arrivano gli aggiornamenti), se offline la copia salvata
-  if (url.origin === location.origin) {
+  if (url.origin === location.origin && url.pathname.startsWith(scope.pathname)) {
     e.respondWith(fetch(req).then(r => { const cp = r.clone(); caches.open(VERSION).then(c => c.put(req, cp)); return r; })
       .catch(() => caches.match(req).then(hit => hit || caches.match("./index.html"))));
     return;
