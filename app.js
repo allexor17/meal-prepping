@@ -86,6 +86,9 @@ function invFind(ingName){return(S.inventory||[]).find(it=>matchNames(it.name,in
 function recipeInv(r){const used=[];let sc=0;ingOf(r).forEach(i=>{if(i.r==="Basi")return;const it=invFind(i.n);if(it&&!used.includes(it)){used.push(it);sc+=PR_W[effPriority(it)]}});return{sc,used}}
 function recipesUsing(it,onlySeason){const m=weekMonth();const rs=S.recipes.filter(r=>!r.spicy&&ingOf(r).some(i=>matchNames(it.name,i.n)));rs.sort((a,b)=>inSeason(b,m)-inSeason(a,m));return onlySeason?rs.filter(r=>inSeason(r,m)):rs}
 function srcOf(r){if(!r)return[];if(r.src)return r.src;if(MAIN_SRC[r.id])return MAIN_SRC[r.id];const o=new Set();ingOf(r).forEach(i=>{const n=String(i.n).toLowerCase();if(/\buov[ao]\b/.test(n)){if(parseFloat(i.q)>=3)o.add("uova");return}SRC_KEYS.forEach(([k,v])=>{if(n.includes(k))o.add(v)})});return[...o]}
+function pinsOf(week){const o=[];(week||[]).forEach((d,di)=>["p","c"].forEach((m,mi)=>{const s=d[m];if(s&&!s.m&&s.k&&R(s.k)&&R(s.k).role==="main")o.push({i:di*2+mi,k:s.k})}));return o}
+function weekMains(week){const o=new Set();(week||[]).forEach(d=>["p","c"].forEach(m=>{const s=d[m];if(s.m&&R(s.m))o.add(R(s.m));if(s.k&&R(s.k)&&R(s.k).role==="main")o.add(R(s.k))}));return[...o]}
+const stockMain=s=>!s.m&&s.k&&R(s.k)&&R(s.k).role==="main"?R(s.k):null;
 const srcClash=(r,list)=>{const a=srcOf(r);return list.filter(x=>x&&x!==r&&srcOf(x).some(s=>a.includes(s)))};
 const mainFam=r=>SRC_FAM[srcOf(r)[0]]||"altro";
 function snacksUsing(it){return SNACKS.filter(x=>x.ing.some(i=>matchNames(it.name,i.n)))}
@@ -213,29 +216,30 @@ function generateWeek(weekStart,seed,opts={}){
   const urgent=(S.inventory||[]).filter(it=>effPriority(it)==="breve"&&pool.some(r=>ingOf(r).some(i=>matchNames(it.name,i.n))));
   const pick=(arr,ex)=>{const c=arr.filter(r=>!ex.has(r.id));if(!c.length)return null;const tot=c.reduce((a,r)=>a+weight(r),0);let x=rnd()*tot;for(const r of c){x-=weight(r);if(x<=0)return r}return c[c.length-1]};
   const ok=(r,day)=>day<=r.fridgeDays||r.freezer;
+  const pins=(opts.pins||[]).filter(p=>R(p.k)),pinR=[...new Set(pins.map(p=>R(p.k)))],pinIdx=new Set(pins.map(p=>p.i)),F=10-pinIdx.size;
   let best=null;
   for(let att=0;att<350;att++){
-    const chosen=[],ex=new Set();let por=0,overlap=0;const want=rnd()<.85?4:3;
-    if(hasOily&&rnd()<.85){const o=pick(mains.filter(r=>r.oily),ex);if(o){chosen.push(o);ex.add(o.id);por+=o.portions;if(prevIds.has(o.id))overlap++}}
-    while((por<10||chosen.length<want)&&chosen.length<5){const r=pick(mains.filter(m=>!srcClash(m,chosen).length),ex);if(!r)break;ex.add(r.id);if(prevIds.has(r.id)){if(overlap>=1)continue;overlap++}chosen.push(r);por+=r.portions}
-    if(por<10)continue;
+    const chosen=[],ex=new Set(pinR.map(r=>r.id));let por=0,overlap=0;const want=rnd()<.85?4:3;
+    if(hasOily&&!pinR.some(r=>r.oily)&&rnd()<.85){const o=pick(mains.filter(r=>r.oily),ex);if(o){chosen.push(o);ex.add(o.id);por+=o.portions;if(prevIds.has(o.id))overlap++}}
+    while((por<F||chosen.length+pinR.length<want)&&chosen.length<5){const r=pick(mains.filter(m=>!srcClash(m,[...pinR,...chosen]).length),ex);if(!r)break;ex.add(r.id);if(prevIds.has(r.id)){if(overlap>=1)continue;overlap++}chosen.push(r);por+=r.portions}
+    if(por<F)continue;
     let tokens=[];chosen.forEach(r=>{for(let i=0;i<r.portions;i++)tokens.push(r)});
     tokens.sort((a,b)=>(a.freezer-b.freezer)||(a.fridgeDays-b.fridgeDays)||(rnd()-.5));
-    while(tokens.length>10){const k=tokens.map(t=>t.freezer).lastIndexOf(true);if(k<0)break;tokens.splice(k,1)}
-    if(tokens.length>10)continue;
+    while(tokens.length>F){const k=tokens.map(t=>t.freezer).lastIndexOf(true);if(k<0)break;tokens.splice(k,1)}
+    if(tokens.length>F)continue;
     tokens.sort((a,b)=>a.fridgeDays-b.fridgeDays||(rnd()-.5));
     const slots=new Array(10).fill(null);let valid=true;const rest=tokens.slice();
-    for(let i=0;i<10;i++){const day=Math.floor(i/2)+1,other=i%2?slots[i-1]:null;
+    for(let i=0;i<10;i++){if(pinIdx.has(i))continue;const day=Math.floor(i/2)+1,other=i%2?slots[i-1]:null;
       let k=rest.findIndex(t=>ok(t,day)&&t!==other&&t!==slots[i-1]);if(k<0)k=rest.findIndex(t=>ok(t,day)&&t!==other);
       if(k<0){valid=false;break}slots[i]=rest.splice(k,1)[0]}
     if(!valid)continue;
     // basi: due famiglie diverse
-    const okB=bases.filter(b=>!srcClash(b,chosen).length);const b1=pick(okB,new Set());if(!b1)continue;const b2=pick(okB.filter(b=>b.family!==b1.family),new Set([b1.id]));if(!b2)continue;const bList=[b1,b2];
+    const okB=bases.filter(b=>!srcClash(b,[...chosen,...pinR]).length);const b1=pick(okB,new Set());if(!b1)continue;const b2=pick(okB.filter(b=>b.family!==b1.family),new Set([b1.id]));if(!b2)continue;const bList=[b1,b2];
     const sx=new Set(),sList=[];const cooked=sides.filter(s=>s.equip!=="nessuno"),raw=sides.filter(s=>s.equip==="nessuno");
     const s1=pick(cooked.length?cooked:sides,sx);if(s1){sList.push(s1);sx.add(s1.id)}const s2=pick(raw.length?raw:sides,sx)||pick(sides,sx);if(s2){sList.push(s2);sx.add(s2.id)}
     const fw1=s1?s1.name.split(" ")[0]:"";const s3=pick(cooked.filter(s=>s.name.split(" ")[0]!==fw1&&(!s1||s.equip!==s1.equip||s.freezer)),sx)||pick(sides.filter(s=>s.name.split(" ")[0]!==fw1),sx);if(s3){sList.push(s3);sx.add(s3.id)}
     const week=emptyWeek();
-    for(let i=0;i<10;i++){const day=Math.floor(i/2)+1,meal=i%2?"c":"p",slot=week[day-1][meal],m=slots[i];slot.m=m.id;
+    for(let i=0;i<10;i++){const day=Math.floor(i/2)+1,meal=i%2?"c":"p",slot=week[day-1][meal],pin=pins.find(p=>p.i===i),m=pin?R(pin.k):slots[i];if(pin)slot.k=pin.k;else slot.m=m.id;
       if(!m.withBase){const st=day+(meal==="c"?1:0);for(let t=0;t<bList.length;t++){const b=bList[(st+t)%bList.length];if(ok(b,day)){slot.b=b.id;break}}}
       const st2=day+(meal==="p"?1:0);for(let t=0;t<sList.length;t++){const s=sList[(st2+t)%sList.length];if(ok(s,day)){slot.s=s.id;break}}
     }
@@ -246,10 +250,10 @@ function generateWeek(weekStart,seed,opts={}){
     const ids=new Set();eachUse(week,r=>ids.add(r.id));const sunday=[...ids].map(R).filter(r=>r.prepMin||r.cookMin);
     const temps=new Set(sunday.filter(r=>r.equip==="forno").map(r=>r.temp)).size;
     const ovenMin=sunday.filter(r=>r.equip==="forno").reduce((a,r)=>a+r.cookMin,0),handMin=sunday.reduce((a,r)=>a+r.prepMin,0);
-    let consec=0;for(let i=1;i<10;i++)if(slots[i]===slots[i-1])consec++;
-    const cnt={};slots.forEach(t=>cnt[t.id]=(cnt[t.id]||0)+1);const overuse=Object.values(cnt).reduce((a,c)=>a+Math.max(0,c-3),0);
+    let consec=0;for(let i=1;i<10;i++)if(slots[i]&&slots[i]===slots[i-1])consec++;
+    const cnt={};slots.forEach(t=>{if(t)cnt[t.id]=(cnt[t.id]||0)+1});const overuse=Object.values(cnt).reduce((a,c)=>a+Math.max(0,c-3),0);
     const fw=chosen.map(r=>r.name.split(" ")[0].toLowerCase());const samey=fw.length-new Set(fw).size;
-    const noOily=hasOily&&!chosen.some(r=>r.oily)?1:0;
+    const noOily=hasOily&&!chosen.some(r=>r.oily)&&!pinR.some(r=>r.oily)?1:0;
     const lentils=Math.max(0,chosen.filter(r=>r.ing.some(i=>/lenticch/.test(i.n))).length-1);
     const famRepeat=[b1,b2].filter(b=>prevFam.has(b.family)).length;
     const plants=weekPlants(week).set.size;
@@ -257,7 +261,7 @@ function generateWeek(weekStart,seed,opts={}){
     const mealLow=nut.reduce((a,n)=>a+Math.max(0,MEAL_PROT_MIN-n.mp),0);
     const favs=[...ids].filter(id=>R(id).fav).length,rec=[...ids].reduce((a,id)=>a+(recent.get(id)||0),0);
     const cost=costOf(aggregate(week,[],[]));const costMid=(cost.min+cost.max)/2;
-    const mainsW=[...ids].map(R).filter(r=>r.role==="main"),famL=mainsW.map(mainFam),famDup=famL.length-new Set(famL).size;
+    const mainsW=[...ids].map(R).filter(r=>r.role==="main").concat(pinR),famL=mainsW.map(mainFam),famDup=famL.length-new Set(famL).size;
     const baseClash=[...ids].map(R).filter(r=>r.role==="base"&&srcClash(r,mainsW).length).length;
     const usedInv=new Set();ids.forEach(id=>(invUse.get(id)||{used:[]}).used.forEach(it=>usedInv.add(it)));const invBonus=[...usedInv].reduce((a,it)=>a+PR_W[effPriority(it)],0);
     const urgentMiss=urgent.filter(it=>![...ids].some(id=>ingOf(R(id)).some(i=>matchNames(it.name,i.n)))).length;
@@ -271,7 +275,7 @@ function generateWeek(weekStart,seed,opts={}){
 function archiveCurrent(){
   if(!S.week||!S.weekStart)return;
   S.week.forEach(d=>["p","c"].forEach(m=>{const k=d[m].k;if(k)takeStock(k,1)}));
-  S.history.unshift({weekStart:S.weekStart,ids:[...new Set(Object.keys(usage()))],keys:[...shopKeys(S.week)],families:[...weekFamilies(S.week)]});
+  S.history.unshift({weekStart:S.weekStart,ids:[...new Set([...Object.keys(usage()),...weekMains(S.week).map(r=>r.id)])],keys:[...shopKeys(S.week)],families:[...weekFamilies(S.week)]});
   S.history=S.history.slice(0,6);S.addons=[];
 }
 function newWeekFor(ws){S.weekStart=ws;S.seed=1;const g=generateWeek(ws,S.seed);S.week=g.week;S.have=[];save();if(g.note)toast(g.note)}
@@ -312,7 +316,9 @@ function renderLabel(){document.getElementById("weekLabel").textContent=`${fmtDa
 function optList(role,sel){const m=weekMonth();const rs=S.recipes.filter(r=>r.role===role&&!r.spicy).sort((a,b)=>inSeason(b,m)-inSeason(a,m)||a.name.localeCompare(b.name));
   return `<option value="">— nessuno —</option>`+rs.map(r=>`<option value="${r.id}"${r.id===sel?" selected":""}>${esc(r.name)}${inSeason(r,m)?"":" (fuori stagione)"} · ${r.protein} g · ${r.kcal} kcal</option>`).join("")}
 function stockOpts(sel){const rids=[...new Set(S.stock.filter(s=>s.where==="freezer").map(s=>s.rid))];if(sel&&!rids.includes(sel))rids.push(sel);
-  return `<option value="">— nessuno —</option>`+rids.map(id=>{const r=R(id);const avail=stockCount(id,"freezer")-plannedK(id)+(id===sel?1:0);return `<option value="${id}"${id===sel?" selected":""}>${esc(r?r.name:id)} (${Math.max(0,avail)} in freezer)</option>`}).join("")}
+  const others=S.recipes.filter(r=>!rids.includes(r.id)&&(r.role==="scorta"||(r.role==="main"&&r.freezer))).sort((a,b)=>a.name.localeCompare(b.name));
+  return `<option value="">— nessuno —</option>`+rids.map(id=>{const r=R(id);const avail=stockCount(id,"freezer")-plannedK(id)+(id===sel?1:0);return `<option value="${id}"${id===sel?" selected":""}>${esc(r?r.name:id)} (${Math.max(0,avail)} in freezer)</option>`}).join("")
+    +(others.length?`<optgroup label="Ce l'ho in freezer ma non è registrato">${others.map(r=>`<option value="new:${r.id}">${esc(r.name)}${r.role==="main"?" · piatto pronto":" · sugo"}</option>`).join("")}</optgroup>`:"")}
 function snackOpts(type,sel){const list=SNACKS.filter(s=>s.type===type);return `<option value="">— nessuno —</option>`+list.map(s=>`<option value="${s.id}"${s.id===sel?" selected":""}>${esc(s.name)}${s.needs&&!stockCount(s.needs)?" (serve farla)":""} · ${s.protein} g</option>`).join("")}
 function fruitOpts(sel){const m=weekMonth();const list=FRUITS.slice().sort((a,b)=>b.months.includes(m)-a.months.includes(m));return list.map(f=>`<option value="${f.id}"${f.id===sel?" selected":""}>${esc(f.label)}${f.months.includes(m)?"":" (fuori stagione)"}</option>`).join("")}
 function renderCostBox(el){const c=costOf(shopItems().filter(i=>!invFind(i.n)),new Set(S.have));el.innerHTML=`<div><div class="eyebrow">Spesa stimata alla Coop</div><div class="big num">${euroR(c.min,c.max)}</div></div><div class="small muted" style="max-width:34ch">pasti, colazioni e spuntini${c.unknown?` · ${c.unknown} articoli senza prezzo`:""} · esclusi quelli già in casa</div>`}
@@ -328,8 +334,8 @@ function renderVariety(){
     <div class="vitem ${pl.set.size>=PLANTS_TARGET?"ok":"no"}"><span class="eyebrow">Piante diverse</span><span class="big num">${pl.set.size} / ${PLANTS_TARGET}</span><span class="sub">regola dell'American Gut Project</span></div>
     <div class="vitem ${fermDays>=5?"ok":"no"}"><span class="eyebrow">Fermentati</span><span class="big num">${fermDays} / 5 giorni</span><span class="sub">almeno uno al giorno</span></div>
     <div class="vitem ${fam.length>=2&&(!prevFam.size||famNew>0)?"ok":"no"}"><span class="eyebrow">Cereali</span><span class="big">${fam.map(f=>FAMILY_LABEL[f]||f).join(" + ")||"—"}</span><span class="sub">${esc(bases.join(", "))}${prevFam.size?` · ${famNew?"diversi dalla settimana prima":"uguali alla settimana prima"}`:""}</span></div>
-    ${(()=>{const ms=[...new Set(S.week.flatMap(d=>[d.p.m,d.c.m]).filter(Boolean))].map(R).filter(Boolean);const dup=ms.some(r=>srcClash(r,ms).length);const fams=new Set(ms.map(mainFam));
-      return `<div class="vitem wide ${dup?"no":"ok"}"><span class="eyebrow">Fonti proteiche dei principali</span><span class="big">${ms.length} piatti · ${fams.size} ${fams.size===1?"famiglia":"famiglie"}</span><span class="sub">${esc(ms.map(r=>`${r.name}: ${srcOf(r).join(" + ")||"?"}`).join(" · "))}${dup?" · due piatti hanno la stessa fonte":""}</span></div>`})()}
+    ${(()=>{const ms=weekMains(S.week),pinned=new Set(pinsOf(S.week).map(p=>p.k));const dup=ms.some(r=>srcClash(r,ms).length);const fams=new Set(ms.map(mainFam));
+      return `<div class="vitem wide ${dup?"no":"ok"}"><span class="eyebrow">Fonti proteiche dei principali</span><span class="big">${ms.length} piatti · ${fams.size} ${fams.size===1?"famiglia":"famiglie"}</span><span class="sub">${esc(ms.map(r=>`${r.name}${pinned.has(r.id)?" (dalle scorte)":""}: ${srcOf(r).join(" + ")||"?"}`).join(" · "))}${dup?" · due piatti hanno la stessa fonte":""}</span></div>`})()}
     <div class="vitem ${oily.length?"ok":"no"}"><span class="eyebrow">Pesce azzurro</span><span class="big">${oily.length?"sì":"no"}</span><span class="sub">${oily.length?esc(oily.join(", ")):"aggiungi sgombro o sardine: omega-3"}</span></div>
    </div>
    ${pl.set.size<PLANTS_TARGET?`<div class="infobox small"><b>Per arrivare a ${PLANTS_TARGET}:</b> ${varietyTips(pl.set).join(" · ")}</div>`:""}
@@ -351,13 +357,14 @@ function computeMoves(){ // chiave = sera (0 = domenica, 1 = lunedì, ...)
   return moves}
 function slotStatus(s,day){const sts=PARTS.map(k=>s[k]&&R(s[k])).filter(Boolean).map(r=>status(r,day));
   if(sts.some(x=>x.k==="bad"))return{k:"bad",t:"non si conserva"};if(sts.some(x=>x.k==="fz")||s.k)return{k:"fz",t:"dal freezer"};if(sts.length)return{k:"fr",t:"frigo"};return null}
-function mealTile(d,i,meal){const s=d[meal];const n=slotNut(s);const m=s.m&&R(s.m);const st=slotStatus(s,i+1);
-  const extra=[s.b&&R(s.b)&&R(s.b).name,s.s&&R(s.s)&&nameOf(R(s.s)),s.k&&R(s.k)&&R(s.k).name].filter(Boolean).map(x=>x.toLowerCase());
+function mealTile(d,i,meal){const s=d[meal];const n=slotNut(s);const km=stockMain(s);const m=(s.m&&R(s.m))||km;const st=slotStatus(s,i+1);
+  const extra=[s.b&&R(s.b)&&R(s.b).name,s.s&&R(s.s)&&nameOf(R(s.s)),!km&&s.k&&R(s.k)&&R(s.k).name].filter(Boolean).map(x=>x.toLowerCase());
   const adds=(s.x||[]).map(id=>B(id)).filter(Boolean).map(b=>"+ "+b.name.toLowerCase());
   return `<button class="tile" type="button" data-d="${i}" data-t="${meal}">
     <span class="tile-h"><span class="when">${meal==="p"?"Pranzo":"Cena"}</span><span class="nut">${n.k} kcal · ${n.p} g</span></span>
     ${m?`<b class="dish">${esc(nameOf(m))}</b>`:`<span class="dish muted">Tocca per scegliere</span>`}
     ${extra.length?`<span class="sub">con ${esc(extra.join(" · "))}</span>`:""}
+    ${km?`<span class="sub home">dalle scorte: già pronto, non da cucinare</span>`:""}
     ${adds.length?`<span class="sub add">${esc(adds.join(" · "))}</span>`:""}
     ${s.n?`<span class="sub">${esc(s.n)}</span>`:""}
     ${(()=>{const u=[...new Set(PARTS.flatMap(k=>s[k]&&R(s[k])?recipeInv(R(s[k])).used:[]))];return u.length?`<span class="sub home">da casa: ${esc(u.map(x=>x.name).join(", "))}</span>`:""})()}
@@ -467,12 +474,13 @@ function renderEditor(){
     const boostOpts=`<option value="">+ aggiungi</option>`+BOOSTERS.map(b=>`<option value="${b.id}">${esc(b.name)}${b.home?" (fatti in casa)":""} · +${b.protein} g</option>`).join("");
     const hasStock=S.stock.some(x=>x.where==="freezer");
     body.innerHTML=`${line("m","Piatto principale","main")}${line("b","Base (cereale)","base")}${line("s","Contorno","side")}
-      ${hasStock||s.k?`<label class="f">Sugo dalle scorte<select data-kk="1">${stockOpts(s.k)}</select></label>`:""}
+      <label class="f">Dalle scorte del freezer<select data-kk="1">${stockOpts(s.k)}</select></label>
+      <p class="small muted" style="margin-top:-6px">Un sugo per condire, oppure un piatto già pronto: in quel caso prende il posto del principale, non va cucinato né comprato e resta fisso se rigeneri la settimana.</p>
       <div class="f"><span class="small" style="font-weight:700;color:var(--ink-2)">Aggiunte</span><div class="row">${(s.x||[]).map((id,k)=>{const b=B(id);return b?`<span class="boost">+ ${esc(b.name)}${b.ing?` (${b.ing.q})`:""} · ${b.protein} g<button type="button" data-bx="${k}" aria-label="Togli">×</button></span>`:""}).join("")}<select class="addx" aria-label="Aggiungi" style="width:auto">${boostOpts}</select></div></div>
       <label class="f">Note<input type="text" id="ed-note" value="${esc(s.n)}" placeholder="Es. condire con limone"></label>
       <div class="infobox small"><b>${n.k} kcal · ${n.p} g di proteine</b> in questo pasto</div>`;
-    body.querySelectorAll("select[data-k]").forEach(sel=>sel.addEventListener("change",()=>{s[sel.dataset.k]=sel.value||null;save();renderEditor()}));
-    const kk=body.querySelector("select[data-kk]");kk&&kk.addEventListener("change",()=>{s.k=kk.value||null;save();renderEditor()});
+    body.querySelectorAll("select[data-k]").forEach(sel=>sel.addEventListener("change",()=>{s[sel.dataset.k]=sel.value||null;if(sel.dataset.k==="m"&&sel.value&&stockMain({k:s.k}))s.k=null;save();renderEditor()}));
+    const kk=body.querySelector("select[data-kk]");kk&&kk.addEventListener("change",()=>{let v=kk.value||null;if(v&&v.startsWith("new:")){v=v.slice(4);addStock(v,1,"freezer");toast("Registrato in Casa: 1 porzione in freezer")}s.k=v;if(v&&R(v)&&R(v).role==="main")s.m=null;save();renderEditor()});
     body.querySelectorAll("[data-bx]").forEach(b=>b.addEventListener("click",()=>{s.x.splice(+b.dataset.bx,1);save();renderEditor()}));
     body.querySelector(".addx").addEventListener("change",e=>{if(!e.target.value)return;s.x.push(e.target.value);save();renderEditor()});
     body.querySelector("#ed-note").addEventListener("change",e=>{s.n=e.target.value;save()});
@@ -502,7 +510,7 @@ function renderChecks(){
     if(Math.abs(n.k-KCAL_TARGET)>200)warns.push(`<b>${DAYS[i]}</b>: ${n.k} kcal, ${n.k>KCAL_TARGET?"sopra":"sotto"} le ${KCAL_TARGET} di più di 200.`)});
   S.week.forEach((d,i)=>["col","spu"].forEach(t=>{const s=SN(d.sn[t].id);if(s&&s.needs&&!stockCount(s.needs)&&!S.addons.includes(s.needs))warns.push(`<b>${DAYS[i]}</b>: "${esc(s.name)}" richiede ${esc(R(s.needs).name.toLowerCase())}, che non hai in casa. Mettila in programma dalla sezione Dolci.`)}));
   [...new Set(S.week.flatMap(d=>[d.p.k,d.c.k]).filter(Boolean))].filter(id=>plannedK(id)>stockCount(id,"freezer")).forEach(id=>warns.push(`<b>${esc((R(id)||{}).name||id)}</b>: in settimana ne usi ${plannedK(id)}, in freezer ne hai ${stockCount(id,"freezer")}.`));
-  {const ms=[...new Set(S.week.flatMap(d=>[d.p.m,d.c.m]).filter(Boolean))].map(R).filter(Boolean);const seen=new Set();ms.forEach(r=>srcClash(r,ms).forEach(x=>{const k=[r.id,x.id].sort().join();if(seen.has(k))return;seen.add(k);const sh=srcOf(r).filter(s=>srcOf(x).includes(s));warns.push(`<b>${esc(r.name)}</b> e <b>${esc(x.name)}</b> hanno la stessa fonte proteica (${esc(sh.join(", "))}): cambiane uno toccando il riquadro.`)}))}
+  {const ms=weekMains(S.week),pinned=new Set(pinsOf(S.week).map(p=>p.k));const seen=new Set();ms.forEach(r=>srcClash(r,ms).forEach(x=>{const k=[r.id,x.id].sort().join();if(seen.has(k))return;seen.add(k);const sh=srcOf(r).filter(s=>srcOf(x).includes(s));warns.push(`<b>${esc(r.name)}</b> e <b>${esc(x.name)}</b> hanno la stessa fonte proteica (${esc(sh.join(", "))}): cambiane uno toccando il riquadro.`)}))}
   const wEnd=iso(addDays(S.weekStart,4));(S.inventory||[]).filter(it=>(it.exp&&it.exp<=wEnd)||effPriority(it)==="breve").filter(it=>!weekUsesInv(it)).forEach(it=>{const rs=recipesUsing(it,true).slice(0,3).map(r=>r.name.toLowerCase());warns.push(`<b>${esc(it.name)}</b>${it.exp?` scade il ${fmtDate(new Date(it.exp+"T12:00:00"))}`:" è da consumare presto"} e non è nella settimana. ${rs.length?`Ricette di stagione che lo usano: ${esc(rs.join(", "))}. Prova "Proponi la settimana con quello che ho" nella sezione Casa.`:"Nessuna ricetta di stagione lo usa: aggiungilo a un pasto o crea una ricetta dalla sezione Casa."}`)});
   const prev=S.history[0];
   if(prev){const sim=jaccard(shopKeys(S.week,S.addons),new Set(prev.keys));if(sim>.6)warns.push(`La spesa è molto simile a quella della settimana precedente (${Math.round(sim*100)}% di ingredienti in comune).`)}
@@ -516,7 +524,7 @@ function renderChecks(){
 let regenArmed=false;
 document.getElementById("regen").addEventListener("click",e=>{
   if(!regenArmed){regenArmed=true;e.target.textContent="Tocca di nuovo: sostituisce la settimana";setTimeout(()=>{regenArmed=false;e.target.textContent="Genera un'altra proposta"},3500);return}
-  regenArmed=false;e.target.textContent="Genera un'altra proposta";S.seed=(S.seed||1)+1;const g=generateWeek(S.weekStart,S.seed);S.week=g.week;S.have=[];save();renderWeek();toast(g.note||"Nuova proposta");
+  regenArmed=false;e.target.textContent="Genera un'altra proposta";S.seed=(S.seed||1)+1;const g=generateWeek(S.weekStart,S.seed,{pins:pinsOf(S.week)});S.week=g.week;S.have=[];save();renderWeek();toast(g.note||"Nuova proposta");
 });
 
 /* ============ VISTA SPESA ============ */
@@ -878,7 +886,7 @@ function renderCasa(){
   el.querySelectorAll("[data-rid]").forEach(b=>b.addEventListener("click",()=>{backTo="scorte";view="ricette";document.getElementById("v-scorte").hidden=true;document.getElementById("v-ricette").hidden=false;showDetail(b.dataset.rid)}));
   el.querySelectorAll("[data-newrec]").forEach(b=>b.addEventListener("click",()=>{const it=S.inventory.find(x=>x.id===b.dataset.newrec);backTo="scorte";view="ricette";document.getElementById("v-scorte").hidden=true;document.getElementById("v-ricette").hidden=false;showEdit(null,"main",[{q:it.qty||"",n:it.name,r:it.where==="dispensa"?"Dispensa":it.where==="freezer"?"Surgelati":"Frigo"}])}));
   g("#inv-regen").addEventListener("click",e=>{if(!invRegenArmed){invRegenArmed=true;e.target.textContent="Tocca di nuovo: sostituisce la settimana in corso";setTimeout(()=>{invRegenArmed=false;const b=document.getElementById("inv-regen");if(b)b.textContent="Proponi la settimana con quello che ho"},3500);return}
-    invRegenArmed=false;S.seed=(S.seed||1)+1;const gw=generateWeek(S.weekStart,S.seed,{inv:true});S.week=gw.week;S.have=[];save();toast(gw.note||"Nuova settimana con quello che hai in casa");show("settimana")});
+    invRegenArmed=false;S.seed=(S.seed||1)+1;const gw=generateWeek(S.weekStart,S.seed,{inv:true,pins:pinsOf(S.week)});S.week=gw.week;S.have=[];save();toast(gw.note||"Nuova settimana con quello che hai in casa");show("settimana")});
 }
 
 /* ============ SPUNTINI E DOLCI ============ */

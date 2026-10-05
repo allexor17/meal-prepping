@@ -82,5 +82,13 @@ let rsz;window.addEventListener("resize",()=>{clearTimeout(rsz);rsz=setTimeout((
 
 /* ============ AVVIO ============ */
 autoWeek();
+/* una tantum: dahl dalle scorte lunedì a pranzo e martedì a cena (settimana 5–9 ottobre 2026) */
+(function seedDahl1005(){try{if(S.seeded.dahl1005||S.weekStart!=="2026-10-05"||!S.week||!R("dahl")||iso(new Date())>"2026-10-09")return;
+  const have=stockCount("dahl","freezer");if(have<2)addStock("dahl",2-have,"freezer","2026-09-28");
+  S.week[0].p={...emptySlot(),k:"dahl"};S.week[1].c={...emptySlot(),k:"dahl"};
+  S.seed=(S.seed||1)+1;const g=generateWeek(S.weekStart,S.seed,{inv:true,pins:pinsOf(S.week)});
+  if(g.week&&g.week.some(d=>d.p.m||d.c.m)){S.week=g.week;S.have=[]}
+  S.seeded.dahl1005=true;save()}catch(err){console.error(err)}})();
+
 show("settimana");
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}
