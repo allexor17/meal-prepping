@@ -1,26 +1,12 @@
-// Salva l'app sul telefono per usarla offline. Cambia VERSION a ogni aggiornamento.
-// Cancella solo le proprie cache: sullo stesso sito vive anche /lavatrice/ (Oblò).
-const VERSION = "mealprep-v11";
-const CORE = ["./", "./index.html", "./style.css", "./data.js", "./prices.js", "./app.js", "./extras.js", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
-
-self.addEventListener("install", e => {
-  e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));
-});
+// La vecchia app del meal prep viveva alla radice del sito e qui registrava il suo service worker.
+// Ora vive in /mealprep/ (Schiscia): questo file prende il posto del vecchio, cancella le sue cache e si disattiva.
+self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k.startsWith("mealprep-") && k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
-});
-self.addEventListener("fetch", e => {
-  const req = e.request;
-  if (req.method !== "GET") return;
-  const url = new URL(req.url);
-  // File dell'app: prima la rete (così arrivano gli aggiornamenti), se offline la copia salvata
-  if (url.origin === location.origin) {
-    e.respondWith(fetch(req).then(r => { const cp = r.clone(); caches.open(VERSION).then(c => c.put(req, cp)); return r; })
-      .catch(() => caches.match(req).then(hit => hit || caches.match("./index.html"))));
-    return;
-  }
-  // Font di Google: prima la copia salvata
-  if (url.hostname.endsWith("fonts.googleapis.com") || url.hostname.endsWith("fonts.gstatic.com")) {
-    e.respondWith(caches.match(req).then(hit => hit || fetch(req).then(r => { const cp = r.clone(); caches.open(VERSION).then(c => c.put(req, cp)); return r; })));
-  }
+  e.waitUntil((async () => {
+    const ks = await caches.keys();
+    await Promise.all(ks.filter(k => k.startsWith("mealprep-")).map(k => caches.delete(k)));
+    await self.registration.unregister();
+    const cs = await self.clients.matchAll({ type: "window" });
+    cs.forEach(c => c.navigate(c.url).catch(() => {}));
+  })());
 });

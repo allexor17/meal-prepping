@@ -1,6 +1,7 @@
 {
-  "name": "Meal prep pescetariano",
-  "short_name": "Meal prep",
+  "name": "Schiscia · meal prep pescetariano",
+  "short_name": "Schiscia",
+  "id": "./",
   "description": "Menu, spesa, piano di lavoro, ricette e conservazione per la settimana.",
   "lang": "it",
   "start_url": "./",
