@@ -7,8 +7,8 @@
  oily: pesce azzurro (omega-3 EPA/DHA) · spicy: piccante (mai proposto)
  store (dolci): giorni in dispensa / giorni in frigo / mesi in freezer
  sugar: zuccheri aggiunti per pezzo (g) */
-const LIB_VERSION=7;
-const REPARTI=["Ortofrutta","Pesce","Frigo","Surgelati","Dispensa","Panetteria","Basi"];
+const LIB_VERSION=8;
+const REPARTI=["Ortofrutta","Pesce","Carne","Frigo","Surgelati","Dispensa","Panetteria","Basi"];
 function M(r){if(Array.isArray(r))return r;if(r==="all")return[1,2,3,4,5,6,7,8,9,10,11,12];const[a,b]=r.split("-").map(Number);const o=[];let m=a;for(;;){o.push(m);if(m===b)break;m=m%12+1}return o}
 function I(list){return list.map(s=>{const[q,n,r]=s.split("|");return{q,n,r}})}
 const FAMILY_LABEL={legumi:"pasta di legumi",frumento:"frumento",orzo:"orzo",riso:"riso",mais:"mais",saraceno:"grano saraceno",miglio:"miglio",quinoa:"quinoa"};
@@ -136,6 +136,11 @@ const LIB=[
  steps:["Scongela i filetti in un sacchetto chiuso a bagno in acqua fredda, 30–40 minuti.","Asciugali bene.","Panatura: pangrattato, parmigiano, prezzemolo, aglio, scorza di limone, olio.","200 °C per 12–15 minuti, finché si sfalda."],
  cons:"Frigo 2 giorni. Non congelare di nuovo.",par:"In forno insieme ad altro a 200 °C.",think:"Il merluzzo è magro: tante proteine ma pochi omega-3. Per quelli serve il pesce azzurro.",
  draw:{vessel:"plate",pieces:[{t:"fillet",c:"#F1EAD8",crumb:"#C98F3E",n:2,s:.5},{t:"wedge",c:"#F2D34A",n:1,s:.2}]}},
+{id:"merluzzo_cartoccio",name:"Merluzzo al cartoccio con olive, capperi e limone",role:"main",portions:3,protein:30,kcal:210,prepMin:10,cookMin:20,equip:"forno",temp:200,fridgeDays:2,freezer:false,months:M("all"),
+ ing:I(["600 g|filetti di merluzzo surgelati|Pesce","10|olive nere|Dispensa","1 cucchiaio|capperi|Dispensa","1|limone|Ortofrutta","1 ciuffo|prezzemolo|Ortofrutta"]),
+ steps:["Scongela i filetti in un sacchetto chiuso a bagno in acqua fredda, 30–40 minuti, e asciugali.","Ogni porzione su un foglio di carta forno: olive, capperi sciacquati, fettine di limone, prezzemolo, un filo d'olio. Chiudi a caramella.","200 °C per 18–20 minuti. Si apre direttamente nel contenitore della schiscia."],
+ cons:"Frigo 2 giorni. Non congelare di nuovo.",par:"In forno con altro a 200 °C.",think:"Perché nel cartoccio il pesce resta morbido? Cuoce nel vapore del suo stesso liquido, che non può evaporare: la superficie non supera i 100 °C e non si secca.",
+ draw:{vessel:"plate",pieces:[{t:"fillet",c:"#F1EAD8",crumb:"#E6DCC4",n:2,s:.5},{t:"olive",c:"#2A2322",n:6,s:.05},{t:"round",c:"#F2D34A",inner:"#FBF1B8",n:3,s:.12}]}},
 {id:"merluzzo_piselli",name:"Merluzzo in umido con piselli",role:"main",portions:3,protein:30,kcal:290,prepMin:10,cookMin:20,equip:"fuochi",fridgeDays:2,freezer:false,months:M("all"),
  ing:I(["450 g|filetti di merluzzo surgelati|Pesce","300 g|piselli surgelati|Surgelati","400 g|pelati|Dispensa","1|cipolla|Ortofrutta"]),
  steps:["Cipolla tritata nell'olio, 5 minuti.","Pelati e piselli, 10 minuti.","Adagia il merluzzo a pezzi (anche ancora semi-congelato), coperchio, 8–10 minuti."],
@@ -250,6 +255,53 @@ const LIB=[
  steps:["Idrata la soia in acqua bollente 10 minuti, poi strizzala benissimo.","Scongela e strizza gli spinaci, tritali.","Impasta soia, spinaci, uovo, parmigiano, aglio grattugiato, sale e 40 g di pangrattato.","20 polpette passate nel pangrattato rimasto, teglia unta, 200 °C per 20 minuti girandole a metà."],
  cons:"Frigo 3 giorni, freezer 3 mesi: prima sul vassoio, poi in sacchetto.",par:"L'impasto si fa a mano mentre altro cuoce.",think:"Perché strizzare tanto la soia? Trattiene acqua come una spugna: se resta bagnata, le polpette si sfaldano in forno.",
  draw:{vessel:"plate",pieces:[{t:"ball",c:"#8E6A3A",n:9,s:.13},{t:"leafy",c:"#2F5E28",n:6,s:.1}]}},
+{id:"edamame_main",name:"Edamame saltati con carote, zenzero e sesamo",role:"main",portions:3,protein:20,kcal:290,prepMin:10,cookMin:10,equip:"fuochi",fridgeDays:3,freezer:true,months:M("all"),
+ ing:I(["500 g|edamame surgelati|Surgelati","2|carote|Ortofrutta","1|cipolla rossa|Ortofrutta","2 cm|zenzero fresco|Ortofrutta","2 cucchiai|salsa di soia|Dispensa","1 cucchiaio|semi di sesamo|Dispensa"]),
+ steps:["Scongela gli edamame 3 minuti in acqua bollente e scolali.","Carote a fiammiferi e cipolla a fettine in padella con un filo d'olio, 5 minuti a fuoco vivo.","Aggiungi edamame, zenzero grattugiato e salsa di soia: 3 minuti mescolando. Sesamo alla fine."],
+ cons:"Frigo 3 giorni, freezer 2 mesi.",par:"Veloce, sul fuoco libero.",think:"Gli edamame sono semi di soia raccolti ancora verdi: la stessa pianta del tofu, ma interi, quindi con tutta la loro fibra.",
+ draw:{vessel:"plate",pieces:[{t:"dot",c:"#7DAE4A",n:60,s:.032},{t:"needle",c:"#E8872E",n:16,s:.1},{t:"dot",c:"#F4EBD2",n:20,s:.01}]}},
+
+/* ---------- PRINCIPALI CON LA CARNE (per chi è onnivoro) ---------- */
+{id:"pollo_limone",name:"Sovracosce di pollo al forno con limone e rosmarino",role:"main",portions:4,protein:28,kcal:270,prepMin:10,cookMin:40,equip:"forno",temp:200,fridgeDays:3,freezer:true,months:M("all"),
+ ing:I(["800 g|sovracosce di pollo senza pelle|Carne","2|limone|Ortofrutta","3 spicchi|aglio|Ortofrutta","3 rametti|rosmarino|Basi"]),
+ steps:["Asciuga bene il pollo con carta da cucina.","In teglia con succo e scorza di un limone, aglio schiacciato, rosmarino, un filo d'olio, sale e pepe. Aggiungi il secondo limone a spicchi.","200 °C per 35–40 minuti, girando a metà.","È cotto quando, bucato vicino all'osso, il succo esce trasparente: al centro deve arrivare a 75 °C."],
+ cons:"Frigo 3 giorni, freezer 3 mesi (anche già sfilacciato).",par:"In forno con altro a 200 °C.",think:"Perché asciugarlo prima? Una superficie bagnata deve prima far evaporare l'acqua, che non supera i 100 °C: la doratura (Maillard) parte solo sopra i 140 °C.",
+ draw:{vessel:"tray",pieces:[{t:"fillet",c:"#D9A066",crumb:"#B5712E",n:3,s:.42},{t:"wedge",c:"#F2D34A",n:2,s:.16},{t:"leaf",c:"#3F7D34",n:6,s:.06}]}},
+{id:"polp_tacchino",name:"Polpette di tacchino e spinaci al forno",role:"main",portions:4,protein:32,kcal:300,prepMin:20,cookMin:20,equip:"forno",temp:200,fridgeDays:3,freezer:true,months:M("all"),
+ ing:I(["500 g|macinato di tacchino|Carne","300 g|spinaci surgelati|Surgelati","1|uova|Frigo","30 g|parmigiano grattugiato|Frigo","50 g|pangrattato|Dispensa","1 spicchio|aglio|Ortofrutta"]),
+ steps:["Scongela e strizza benissimo gli spinaci, poi tritali.","Impasta macinato, spinaci, uovo, parmigiano, aglio grattugiato, sale e 30 g di pangrattato.","20 polpette passate nel pangrattato rimasto, su teglia con carta forno.","200 °C per 20 minuti, girandole a metà."],
+ cons:"Frigo 3 giorni. Freezer 3 mesi: prima sul vassoio, poi in sacchetto.",par:"L'impasto si fa a mano mentre altro cuoce.",think:"Perché il macinato va cotto fino al centro e una bistecca no? Tritando, i batteri che stavano solo sulla superficie finiscono dentro la carne.",
+ draw:{vessel:"plate",pieces:[{t:"ball",c:"#C99A6A",n:9,s:.13},{t:"leafy",c:"#2F5E28",n:6,s:.1}]}},
+{id:"ragu_manzo",name:"Ragù di manzo e verdure",role:"main",portions:5,protein:19,kcal:185,prepMin:15,cookMin:60,equip:"fuochi",fridgeDays:3,freezer:true,months:M("all"),
+ ing:I(["400 g|macinato di manzo magro|Carne","1|cipolla|Ortofrutta","1|carote|Ortofrutta","1 costa|sedano|Ortofrutta","700 g|passata di pomodoro|Dispensa","2|foglie di alloro|Basi"]),
+ steps:["Trita cipolla, carota e sedano e soffriggi 8 minuti a fuoco medio.","Alza la fiamma, aggiungi il macinato e sgranalo col cucchiaio: deve rosolare, non bollire. 8 minuti.","Passata, alloro e un bicchiere d'acqua: almeno 50 minuti a fuoco basso, coperchio socchiuso. Sala alla fine.","Condisce la base della settimana: pasta, polenta o orzo."],
+ cons:"Frigo 3 giorni, freezer 3 mesi.",par:"Sobbolle a lungo da solo.",think:"Perché alzare la fiamma quando entra la carne? Se la padella si raffredda, la carne perde acqua e bolle nel suo succo: grigia invece che rosolata.",
+ draw:{vessel:"bowl",bowl:"#3A2E28",base:"#9A3A22",base2:"#86301B",pieces:[{t:"grain",c:"#6E3A25",n:110,s:.03},{t:"cube",c:"#E07A2B",n:6,s:.05}]}},
+{id:"straccetti_pollo",name:"Straccetti di pollo ai funghi",role:"main",portions:4,protein:31,kcal:200,prepMin:15,cookMin:15,equip:"fuochi",fridgeDays:3,freezer:true,months:M("all"),
+ ing:I(["500 g|petto di pollo|Carne","400 g|funghi champignon|Ortofrutta","1 spicchio|aglio|Ortofrutta","1 ciuffo|prezzemolo|Ortofrutta","1 cucchiaio|amido di mais|Dispensa"]),
+ steps:["Taglia il petto a strisce sottili e passale nell'amido di mais (in un sacchetto chiuso si fa in un attimo).","Funghi a fette in padella con olio e aglio, 8 minuti a fuoco vivo, finché la loro acqua evapora. Tienili da parte.","Nella stessa padella il pollo, 5–6 minuti girandolo; poi rimetti i funghi, sale e prezzemolo."],
+ cons:"Frigo 3 giorni, freezer 2 mesi.",par:"Veloce, sul fuoco libero.",think:"Perché i funghi prima e da soli? Sono acqua per il 90%: se li metti insieme al pollo, l'acqua che buttano lo lessa invece di rosolarlo.",
+ draw:{vessel:"plate",pieces:[{t:"needle",c:"#E8D2B0",n:16,s:.22},{t:"flake",c:"#9C7A55",n:12,s:.09},{t:"leaf",c:"#3F7D34",n:6,s:.05}]}},
+{id:"maiale_mele",name:"Filetto di maiale alla senape con mele al forno",role:"main",portions:4,protein:32,kcal:270,prepMin:10,cookMin:25,equip:"forno",temp:200,fridgeDays:3,freezer:true,months:M("9-3"),
+ ing:I(["600 g|filetto di maiale|Carne","2|mele|Ortofrutta","1|cipolla rossa|Ortofrutta","1 cucchiaio|senape|Dispensa","2 rametti|rosmarino|Basi"]),
+ steps:["Spennella il filetto con la senape, sale, pepe e rosmarino tritato.","In teglia con mele e cipolla a spicchi e un filo d'olio.","200 °C per 20–25 minuti: al centro 63–65 °C, appena rosato.","Fallo riposare 5 minuti prima di affettarlo."],
+ cons:"Frigo 3 giorni, freezer 3 mesi a fette.",par:"In forno con altro a 200 °C.",think:"Perché farlo riposare? Le fibre calde sono contratte: aspettando, il succo si ridistribuisce invece di finire sul tagliere.",
+ draw:{vessel:"tray",pieces:[{t:"round",c:"#C98B6A",inner:"#E9C2A8",n:8,s:.16},{t:"wedge",c:"#E9D98A",n:4,s:.14},{t:"ring",c:"#8E3B6A",n:5,s:.1}]}},
+{id:"chili",name:"Chili con carne e fagioli, piccante",role:"main",portions:5,protein:26,kcal:280,prepMin:15,cookMin:40,equip:"fuochi",fridgeDays:4,freezer:true,spicy:true,months:M("all"),
+ ing:I(["400 g|macinato di manzo magro|Carne","2 lattine|fagioli borlotti|Dispensa","800 g|pelati|Dispensa","1|cipolla|Ortofrutta","1|peperoni|Ortofrutta","1 cucchiaino|peperoncino in polvere|Basi","1 cucchiaino|cumino|Basi"]),
+ steps:["Cipolla e peperone a dadini nell'olio, 6 minuti.","Alza la fiamma, aggiungi il macinato e rosolalo 8 minuti sgranandolo.","Cumino e peperoncino, un minuto: nell'olio caldo le spezie sprigionano più aroma.","Pelati schiacciati e un bicchiere d'acqua, 25 minuti. Poi i borlotti sciacquati, altri 10 minuti."],
+ cons:"Frigo 4 giorni, freezer 3 mesi: migliora il giorno dopo.",par:"Sobbolle da solo.",think:"Il piccante della capsaicina non è un sapore ma un segnale di dolore: attiva gli stessi recettori (TRPV1) del calore. Per questo l'acqua non lo spegne, i grassi e lo yogurt sì.",
+ draw:{vessel:"bowl",bowl:"#3A2E28",base:"#A8341E",base2:"#922B17",pieces:[{t:"flake",c:"#6B2F25",n:24,s:.06},{t:"grain",c:"#5A2A1E",n:40,s:.04},{t:"cube",c:"#3F7A35",n:6,s:.05}]}},
+{id:"pollo_curry",name:"Pollo al curry dolce con ceci e spinaci",role:"main",portions:4,protein:35,kcal:345,prepMin:15,cookMin:25,equip:"fuochi",fridgeDays:3,freezer:true,months:M("all"),
+ ing:I(["500 g|petto di pollo|Carne","1 lattina|ceci|Dispensa","200 g|spinaci surgelati|Surgelati","200 ml|latte di cocco|Dispensa","1|cipolla|Ortofrutta","2 cucchiaini|curry dolce|Basi"]),
+ steps:["Cipolla tritata nell'olio, 5 minuti; poi il curry dolce, un minuto.","Pollo a bocconi, 5 minuti a fuoco vivo.","Latte di cocco, ceci sciacquati e spinaci ancora surgelati: 15 minuti col coperchio. Sala alla fine."],
+ cons:"Frigo 3 giorni, freezer 3 mesi.",par:"Un fuoco, cuoce da solo.",think:"Il curry non è una spezia ma una miscela: quello dolce ha curcuma, coriandolo e cumino ma poco o niente peperoncino. Guarda l'etichetta.",
+ draw:{vessel:"bowl",bowl:"#26394A",base:"#E0A33A",base2:"#D3922A",pieces:[{t:"cube",c:"#F2E3C0",n:10,s:.09},{t:"dot",c:"#D9B97A",n:14,s:.035},{t:"leafy",c:"#3B6E2E",n:8,s:.1}]}},
+{id:"insalata_pollo",name:"Insalata tiepida di pollo, fagiolini e patate",role:"main",portions:3,protein:36,kcal:340,prepMin:15,cookMin:25,equip:"fuochi",fridgeDays:3,freezer:false,withBase:true,months:M("6-9"),
+ ing:I(["400 g|petto di pollo|Carne","400 g|fagiolini|Ortofrutta","500 g|patate|Ortofrutta","1|limone|Ortofrutta","1 ciuffo|prezzemolo|Ortofrutta"]),
+ steps:["Lessa le patate a cubi 12 minuti; negli ultimi 8 aggiungi i fagiolini spuntati nella stessa pentola.","Intanto cuoci il petto di pollo in padella, 5–6 minuti per lato, e taglialo a strisce.","Condisci tutto con olio, limone, prezzemolo, sale e pepe. Si mangia tiepida o fredda."],
+ cons:"Frigo 3 giorni. Non si congela.",par:"Una pentola sola per patate e fagiolini.",think:"Il cereale qui non serve: le patate fanno da base. Raffreddandosi, parte del loro amido diventa amido resistente, che si comporta un po' come una fibra.",
+ draw:{vessel:"plate",pieces:[{t:"cube",c:"#EBD9A8",n:12,s:.12},{t:"needle",c:"#4F8A3A",n:20,s:.18},{t:"needle",c:"#E8D2B0",n:10,s:.2}]}},
 
 /* ---------- SCORTE DA FREEZER ---------- */
 {id:"s_ragu_lenticchie",name:"Ragù di lenticchie",role:"scorta",portions:8,protein:10,kcal:180,prepMin:15,cookMin:45,equip:"fuochi",freezerMonths:3,months:M("all"),uses:"pasta, riso, polenta, patate al forno",
@@ -406,44 +458,116 @@ const DRAW_EXTRA={
 };
 LIB.forEach(r=>{if(!r.draw&&DRAW_EXTRA[r.id])r.draw=DRAW_EXTRA[r.id]});
 
+/* ============ ETICHETTE PER LA PERSONALIZZAZIONE ============
+ carb: carboidrati disponibili per porzione, in g (come nelle tabelle CREA: la fibra è esclusa), stima ±15%
+ diff: 1 facile · 2 media · 3 impegnativa
+ cold: buona fredda o a temperatura ambiente (pranzo senza microonde). Basi e contorni lo sono di default
+ soup: si porta calda nel termos
+ sauce: è un sugo da mettere su una base
+ air: si può fare nella friggitrice ad aria (in due giri)
+ tl: utensili che cambiano i tempi. t = frulla | pressione | trita; k = prep o cook;
+     w = minuti in più o in meno CON l'utensile, wo = minuti in più SENZA; alt = come si fa */
+const META={
+ farro:{carb:37,tl:[{t:"pressione",k:"cook",w:-12,alt:"In pentola a pressione: 12 minuti dal fischio."}]},
+ orzo:{carb:39,tl:[{t:"pressione",k:"cook",w:-15,alt:"In pentola a pressione: 15 minuti dal fischio."}]},
+ riso:{carb:42,tl:[{t:"pressione",k:"cook",w:-17,alt:"In pentola a pressione: 18 minuti dal fischio, poi lascia sfiatare da sola."}]},
+ couscous:{carb:35},pasta:{carb:35},pane:{carb:38},polenta:{carb:41,cold:false},saraceno:{carb:34},miglio:{carb:39},quinoa:{carb:33},bulgur:{carb:39},
+ pasta_lenticchie:{carb:27},pasta_piselli:{carb:26},pasta_verdure:{carb:37},
+ verd_aut:{carb:21,air:true},verd_inv:{carb:10,air:true},verd_est:{carb:10,air:true},piselli:{carb:15},slaw:{carb:6},spinaci:{carb:6},fagiolini:{carb:4},
+ insalata:{carb:2},cetrioli:{carb:4},cavolo_nero:{carb:3},verd_stagione:{carb:12,air:true},insalata_stagione:{carb:5},
+ frit_stagione:{carb:5,cold:true},
+ merluzzo:{carb:14,air:true},merluzzo_cartoccio:{carb:2},
+ merluzzo_piselli:{carb:15,soup:true},
+ polp_merluzzo:{carb:24,diff:2,cold:true,air:true},
+ polp_tonno:{carb:34,diff:2,cold:true,air:true},
+ polp_sgombro:{carb:30,diff:2,cold:true,air:true},
+ sugo_sgombro:{carb:9,sauce:true},
+ sardine:{carb:10,diff:2,cold:true,air:true},
+ dahl:{carb:45,soup:true,tl:[{t:"pressione",k:"cook",w:-10,alt:"In pentola a pressione: 10 minuti dal fischio, poi spinaci e cocco a pentola aperta."}]},
+ stufato:{carb:50,soup:true,tl:[{t:"pressione",k:"cook",w:-20,alt:"Lenticchie e pelati in pentola a pressione, 12 minuti dal fischio; poi i borlotti a pentola aperta."},{t:"trita",k:"prep",w:-3}]},
+ lenticchie:{carb:43,soup:true,tl:[{t:"pressione",k:"cook",w:-20,alt:"In pentola a pressione: 12–15 minuti dal fischio."},{t:"trita",k:"prep",w:-4}]},
+ cannellini_tonno:{carb:25,cold:true},
+ frit_zucchine:{carb:4,cold:true},frit_asparagi:{carb:4,cold:true},
+ frit_broccoli:{carb:4,cold:true,tl:[{t:"frulla",k:"prep",wo:5,alt:"Senza frullatore: sbriciola il tofu finissimo con la forchetta e sbattilo con le uova."}]},
+ torta_spinaci:{carb:28,diff:2,cold:true,tl:[{t:"frulla",k:"prep",wo:5,alt:"Senza frullatore: sbriciola il tofu finissimo con la forchetta e sbattilo con le uova."}]},
+ tofu:{carb:6,cold:true,air:true},
+ tempeh:{carb:9,diff:2,cold:true,air:true},
+ seitan:{carb:10},
+ peperoni_ripieni:{carb:49,diff:2,cold:true},
+ parmigiana:{carb:10,diff:2,cold:true},
+ zuppa_ceci:{carb:35,soup:true,tl:[{t:"frulla",k:"prep",wo:5,alt:"Senza frullatore: schiaccia un mestolo di ceci con la forchetta e rimescolali nella zuppa."}]},
+ vellutata_zucca:{carb:41,soup:true,tl:[{t:"frulla",k:"prep",wo:10,alt:"Senza frullatore: schiaccia tutto con lo schiacciapatate o la forchetta; le lenticchie rosse si sfaldano da sole e viene una crema rustica."}]},
+ ragu_soia:{carb:16,sauce:true,tl:[{t:"trita",k:"prep",w:-4}]},
+ polp_soia:{carb:19,diff:2,cold:true,air:true},
+ edamame_main:{carb:12,cold:true},
+ pollo_limone:{carb:1,cold:true,air:true},
+ polp_tacchino:{carb:9,diff:2,cold:true,air:true},
+ ragu_manzo:{carb:9,sauce:true,tl:[{t:"pressione",k:"cook",w:-35,alt:"In pentola a pressione: 20–25 minuti dal fischio."},{t:"trita",k:"prep",w:-4}]},
+ straccetti_pollo:{carb:3},
+ maiale_mele:{carb:11,diff:2,cold:true,air:true},
+ chili:{carb:22,soup:true,tl:[{t:"pressione",k:"cook",w:-20,alt:"In pentola a pressione: 15 minuti dal fischio, poi i borlotti a pentola aperta."}]},
+ pollo_curry:{carb:14,soup:true},
+ insalata_pollo:{carb:33,cold:true},
+ s_ragu_lenticchie:{carb:25,tl:[{t:"pressione",k:"cook",w:-25,alt:"In pentola a pressione: 20 minuti dal fischio, poi qualche minuto a pentola aperta per addensare."},{t:"trita",k:"prep",w:-4}]},
+ s_sugo_tonno:{carb:6},
+ s_pomodoro:{carb:10,diff:2},
+ s_pesto_basilico:{carb:1,tl:[{t:"frulla",k:"prep",wo:15,alt:"Senza frullatore: trita tutto finissimo col coltello, o pesta nel mortaio come il pesto genovese tradizionale."}]},
+ s_pesto_cavolo:{carb:1,tl:[{t:"frulla",k:"prep",wo:15,alt:"Senza frullatore: trita finissimo col coltello cavolo, noci e aglio, poi unisci olio e parmigiano."}]},
+ s_pesto_rucola:{carb:1,tl:[{t:"frulla",k:"prep",wo:10,alt:"Senza frullatore: trita finissimo col coltello rucola e mandorle, poi unisci olio e parmigiano."}]},
+ s_crema_zucca:{carb:15,tl:[{t:"frulla",k:"prep",wo:10,alt:"Senza frullatore: passa tutto con lo schiacciapatate."}]},
+ s_crema_piselli:{carb:10,tl:[{t:"frulla",k:"prep",wo:10,alt:"Senza frullatore: schiaccia i piselli con lo schiacciapatate, viene più rustica."}]},
+ s_peperoni:{carb:8,tl:[{t:"frulla",k:"prep",wo:0,alt:"Senza frullatore: lascialo a listarelle, è buono lo stesso."}]},
+ f_crauti:{carb:1,diff:2},f_carote:{carb:2},f_cetrioli:{carb:1,diff:2},f_cavolfiore:{carb:1},
+ f_kimchi:{carb:2,diff:3,tl:[{t:"frulla",k:"prep",wo:5,alt:"Senza frullatore: grattugia pera, aglio e zenzero e mescolali alla salamoia."}]},
+ d_crema_nocciole:{carb:1},d_barrette:{carb:18},d_granola:{carb:20,air:true,tl:[{t:"frulla",k:"prep",wo:5,alt:"Senza frullatore: schiaccia i datteri ammollati con la forchetta fino a una pasta."}]},
+ d_energy:{carb:13,tl:[{t:"frulla",k:"prep",w:-5}]},d_banana:{carb:20,diff:2},d_mele:{carb:20,diff:2},d_muffin_pere:{carb:14,diff:2,air:true},
+ d_biscotti_zucca:{carb:10,air:true},d_plumcake_arancia:{carb:18,diff:2},d_barrette_fragole:{carb:21,diff:2},d_muffin_albicocche:{carb:13,diff:2,air:true},d_bark:{carb:9}
+};
+LIB.forEach(r=>{const m=META[r.id];if(m)Object.assign(r,m);if(r.cold===undefined&&(r.role==="base"||r.role==="side"))r.cold=true;if(!r.diff)r.diff=1});
+
 /* ============ AGGIUNTE AI PASTI ============
  Usate quando un giorno resta sotto gli 80 g di proteine, o a mano. ferm = fermentato con microrganismi vivi */
 const BOOSTERS=[
- {id:"uova",name:"2 uova sode",protein:12,kcal:150,ing:{q:"2",n:"uova",r:"Frigo"},prep:true},
- {id:"edamame",name:"Edamame",protein:11,kcal:120,ing:{q:"100 g",n:"edamame surgelati",r:"Surgelati"}},
- {id:"feta",name:"Feta",protein:6,kcal:105,ing:{q:"40 g",n:"feta",r:"Frigo"}},
- {id:"yogurt_greco",name:"Salsa di yogurt greco",protein:10,kcal:55,ferm:true,ing:{q:"100 g",n:"yogurt greco 0%",r:"Frigo"}},
- {id:"tofu_aff",name:"Tofu affumicato a cubetti",protein:10,kcal:95,ing:{q:"60 g",n:"tofu affumicato",r:"Frigo"}},
- {id:"parm",name:"Parmigiano",protein:7,kcal:78,ing:{q:"20 g",n:"parmigiano grattugiato",r:"Frigo"}},
- {id:"ceci",name:"Ceci",protein:7,kcal:120,ing:{q:"100 g",n:"ceci",r:"Dispensa"}},
- {id:"crauti",name:"Crauti o verdure fermentate",protein:0,kcal:10,ferm:true,home:true,ing:null},
- {id:"germogli",name:"Germogli nell'insalata",protein:1,kcal:10,ing:{q:"30 g",n:"germogli misti",r:"Ortofrutta"}},
- {id:"chia",name:"Semi di chia",protein:2,kcal:50,ing:{q:"10 g",n:"semi di chia",r:"Dispensa"}}
+ {id:"uova",name:"2 uova sode",protein:12,kcal:150,carb:1,ing:{q:"2",n:"uova",r:"Frigo"},prep:true},
+ {id:"edamame",name:"Edamame",protein:11,kcal:120,carb:4,ing:{q:"100 g",n:"edamame surgelati",r:"Surgelati"}},
+ {id:"feta",name:"Feta",protein:6,kcal:105,carb:1,ing:{q:"40 g",n:"feta",r:"Frigo"}},
+ {id:"yogurt_greco",name:"Salsa di yogurt greco",protein:10,kcal:55,carb:4,ferm:true,ing:{q:"100 g",n:"yogurt greco 0%",r:"Frigo"}},
+ {id:"tofu_aff",name:"Tofu affumicato a cubetti",protein:10,kcal:95,carb:1,ing:{q:"60 g",n:"tofu affumicato",r:"Frigo"}},
+ {id:"parm",name:"Parmigiano",protein:7,kcal:78,carb:0,ing:{q:"20 g",n:"parmigiano grattugiato",r:"Frigo"}},
+ {id:"ceci",name:"Ceci",protein:7,kcal:120,carb:15,ing:{q:"100 g",n:"ceci",r:"Dispensa"}},
+ {id:"crauti",name:"Crauti o verdure fermentate",protein:0,kcal:10,carb:1,ferm:true,home:true,ing:null},
+ {id:"germogli",name:"Germogli nell'insalata",protein:1,kcal:10,carb:1,ing:{q:"30 g",n:"germogli misti",r:"Ortofrutta"}},
+ {id:"chia",name:"Semi di chia",protein:2,kcal:50,carb:1,ing:{q:"10 g",n:"semi di chia",r:"Dispensa"}},
+ /* usate solo quando il profilo le rende utili: bresaola per chi mangia carne, i grassi per chi limita i carboidrati */
+ {id:"bresaola",name:"Bresaola",protein:13,kcal:60,carb:0,extra:"prot",ing:{q:"40 g",n:"bresaola",r:"Carne"}},
+ {id:"avocado",name:"Mezzo avocado",protein:2,kcal:130,carb:2,extra:"kcal",ing:{q:"½",n:"avocado",r:"Ortofrutta"}},
+ {id:"olio_crudo",name:"Un cucchiaio di olio EVO a crudo",protein:0,kcal:90,carb:0,extra:"kcal",ing:null},
+ {id:"noci_pasto",name:"Noci tritate",protein:3,kcal:130,carb:1,extra:"kcal",ing:{q:"20 g",n:"noci",r:"Dispensa"}}
 ];
 
 /* ============ FRUTTA DI STAGIONE ============ */
 const FRUITS=[
- {id:"mela",label:"1 mela",n:"mele",q:"1",kcal:80,months:M("8-5"),pair:"con grana, burro di arachidi o noci"},
- {id:"pera",label:"1 pera",n:"pere",q:"1",kcal:85,months:M("8-2"),pair:"con grana o pecorino: l'abbinamento classico"},
- {id:"arancia",label:"1 arancia",n:"arance",q:"1",kcal:70,months:M("11-4"),pair:"con mandorle; la vitamina C aiuta il ferro dei legumi del pasto"},
- {id:"mandarini",label:"2 mandarini",n:"mandarini",q:"2",kcal:80,months:M("11-2"),pair:"con noci o con yogurt greco"},
- {id:"kiwi",label:"2 kiwi",n:"kiwi",q:"2",kcal:90,months:M("11-4"),pair:"con yogurt greco o kefir"},
- {id:"pompelmo",label:"½ pompelmo",n:"pompelmo",q:"½",kcal:40,months:M("12-4"),pair:"con yogurt e avena"},
- {id:"cachi",label:"1 caco",n:"cachi",q:"1",kcal:110,months:M("10-12"),pair:"con yogurt greco: è già dolce come un budino"},
- {id:"melograno",label:"½ melograno",n:"melograno",q:"½",kcal:80,months:M("10-12"),pair:"sui chicchi di yogurt o nel porridge"},
- {id:"uva",label:"150 g di uva",n:"uva",q:"150 g",kcal:100,months:M("8-10"),pair:"con mandorle o formaggio"},
- {id:"fichi",label:"150 g di fichi",n:"fichi",q:"150 g",kcal:100,months:M("8-9"),pair:"con ricotta o con noci"},
- {id:"prugne",label:"150 g di prugne",n:"prugne",q:"150 g",kcal:70,months:M("7-9"),pair:"con yogurt o kefir"},
- {id:"pesca",label:"1 pesca",n:"pesche",q:"1",kcal:60,months:M("6-9"),pair:"con yogurt greco o mandorle"},
- {id:"albicocche",label:"3 albicocche",n:"albicocche",q:"3",kcal:60,months:M("6-7"),pair:"con mandorle o ricotta"},
- {id:"ciliegie",label:"150 g di ciliegie",n:"ciliegie",q:"150 g",kcal:90,months:M("5-7"),pair:"con yogurt greco"},
- {id:"fragole",label:"150 g di fragole",n:"fragole",q:"150 g",kcal:45,months:M("4-6"),pair:"con yogurt o crema di nocciole"},
- {id:"nespole",label:"150 g di nespole",n:"nespole",q:"150 g",kcal:70,months:M("5-6"),pair:"con mandorle"},
- {id:"melone",label:"200 g di melone",n:"melone",q:"200 g",kcal:65,months:M("6-8"),pair:"con feta o yogurt"},
- {id:"anguria",label:"250 g di anguria",n:"anguria",q:"250 g",kcal:75,months:M("7-8"),pair:"con feta e menta"},
- {id:"fichi_india",label:"2 fichi d'India",n:"fichi d'India",q:"2",kcal:60,months:M("8-10"),pair:"con yogurt o ricotta; sbucciali con coltello e forchetta per le spine"},
- {id:"banana",label:"1 banana",n:"banane",q:"1",kcal:95,months:M("all"),auto:false,pair:"con burro di arachidi o nel porridge. Non è di stagione in Italia: viene da lontano tutto l'anno"},
- {id:"mirtilli",label:"125 g di mirtilli",n:"mirtilli",q:"125 g",kcal:70,months:M("6-9"),pair:"nello yogurt o nel porridge"}
+ {id:"mela",label:"1 mela",n:"mele",q:"1",kcal:80,carb:18,months:M("8-5"),pair:"con grana, burro di arachidi o noci"},
+ {id:"pera",label:"1 pera",n:"pere",q:"1",kcal:85,carb:16,months:M("8-2"),pair:"con grana o pecorino: l'abbinamento classico"},
+ {id:"arancia",label:"1 arancia",n:"arance",q:"1",kcal:70,carb:15,months:M("11-4"),pair:"con mandorle; la vitamina C aiuta il ferro dei legumi del pasto"},
+ {id:"mandarini",label:"2 mandarini",n:"mandarini",q:"2",kcal:80,carb:19,months:M("11-2"),pair:"con noci o con yogurt greco"},
+ {id:"kiwi",label:"2 kiwi",n:"kiwi",q:"2",kcal:90,carb:18,months:M("11-4"),pair:"con yogurt greco o kefir"},
+ {id:"pompelmo",label:"½ pompelmo",n:"pompelmo",q:"½",kcal:40,carb:9,months:M("12-4"),pair:"con yogurt e avena"},
+ {id:"cachi",label:"1 caco",n:"cachi",q:"1",kcal:110,carb:26,months:M("10-12"),pair:"con yogurt greco: è già dolce come un budino"},
+ {id:"melograno",label:"½ melograno",n:"melograno",q:"½",kcal:80,carb:19,months:M("10-12"),pair:"sui chicchi di yogurt o nel porridge"},
+ {id:"uva",label:"150 g di uva",n:"uva",q:"150 g",kcal:100,carb:23,months:M("8-10"),pair:"con mandorle o formaggio"},
+ {id:"fichi",label:"150 g di fichi",n:"fichi",q:"150 g",kcal:100,carb:17,months:M("8-9"),pair:"con ricotta o con noci"},
+ {id:"prugne",label:"150 g di prugne",n:"prugne",q:"150 g",kcal:70,carb:16,months:M("7-9"),pair:"con yogurt o kefir"},
+ {id:"pesca",label:"1 pesca",n:"pesche",q:"1",kcal:60,carb:13,months:M("6-9"),pair:"con yogurt greco o mandorle"},
+ {id:"albicocche",label:"3 albicocche",n:"albicocche",q:"3",kcal:60,carb:10,months:M("6-7"),pair:"con mandorle o ricotta"},
+ {id:"ciliegie",label:"150 g di ciliegie",n:"ciliegie",q:"150 g",kcal:90,carb:14,months:M("5-7"),pair:"con yogurt greco"},
+ {id:"fragole",label:"150 g di fragole",n:"fragole",q:"150 g",kcal:45,carb:8,months:M("4-6"),pair:"con yogurt o crema di nocciole"},
+ {id:"nespole",label:"150 g di nespole",n:"nespole",q:"150 g",kcal:70,carb:9,months:M("5-6"),pair:"con mandorle"},
+ {id:"melone",label:"200 g di melone",n:"melone",q:"200 g",kcal:65,carb:15,months:M("6-8"),pair:"con feta o yogurt"},
+ {id:"anguria",label:"250 g di anguria",n:"anguria",q:"250 g",kcal:75,carb:9,months:M("7-8"),pair:"con feta e menta"},
+ {id:"fichi_india",label:"2 fichi d'India",n:"fichi d'India",q:"2",kcal:60,carb:14,months:M("8-10"),pair:"con yogurt o ricotta; sbucciali con coltello e forchetta per le spine"},
+ {id:"banana",label:"1 banana",n:"banane",q:"1",kcal:95,carb:22,months:M("all"),auto:false,pair:"con burro di arachidi o nel porridge. Non è di stagione in Italia: viene da lontano tutto l'anno"},
+ {id:"mirtilli",label:"125 g di mirtilli",n:"mirtilli",q:"125 g",kcal:70,carb:6,months:M("6-9"),pair:"nello yogurt o nel porridge"}
 ];
 
 /* ============ VERDURE DI STAGIONE (per le ricette che si adattano) ============
@@ -484,48 +608,57 @@ Object.assign(PRODUCE_SEASON,{"pomodori maturi":M("7-9"),"pomodorini":M("6-9"),"
 /* ============ COLAZIONI E SPUNTINI ============
  kcal e proteine senza la frutta (si aggiunge a parte). ferm = fermentato vivo. needs = serve un dolce fatto in casa */
 const SNACKS=[
- {id:"c_yogurt",type:"colazione",name:"Yogurt greco, avena, noci e frutta",kcal:275,protein:22,fruit:true,ferm:true,
+ {id:"c_yogurt",type:"colazione",name:"Yogurt greco, avena, noci e frutta",kcal:275,protein:22,carb:27,fruit:true,ferm:true,
   ing:I(["170 g|yogurt greco 0%|Frigo","30 g|fiocchi d'avena|Dispensa","10 g|noci|Dispensa"]),why:"Proteine alte già a colazione: la sazietà dura fino a pranzo."},
- {id:"c_porridge",type:"colazione",name:"Porridge con bevanda di soia, semi e frutta",kcal:275,protein:15,fruit:true,
+ {id:"c_porridge",type:"colazione",name:"Porridge con bevanda di soia, semi e frutta",kcal:275,protein:15,carb:29,fruit:true,
   ing:I(["40 g|fiocchi d'avena|Dispensa","200 ml|bevanda di soia|Frigo","10 g|semi di zucca|Dispensa"]),why:"I beta-glucani dell'avena rallentano l'assorbimento degli zuccheri della frutta."},
- {id:"c_porridge_avena",type:"colazione",name:"Porridge con bevanda d'avena, chia e frutta",kcal:290,protein:10,fruit:true,
+ {id:"c_porridge_avena",type:"colazione",name:"Porridge con bevanda d'avena, chia e frutta",kcal:290,protein:10,carb:40,fruit:true,
   ing:I(["40 g|fiocchi d'avena|Dispensa","200 ml|bevanda di avena|Frigo","10 g|semi di chia|Dispensa"]),why:"Più cremoso di quello con la soia, ma con meno proteine: abbinalo a uno spuntino proteico."},
- {id:"c_uova",type:"colazione",name:"Pane integrale tostato, 2 uova sode e frutta",kcal:300,protein:18,fruit:true,eggs:2,
+ {id:"c_uova",type:"colazione",name:"Pane integrale tostato, 2 uova sode e frutta",kcal:300,protein:18,carb:29,fruit:true,eggs:2,
   ing:I(["60 g|pane integrale|Panetteria","2|uova|Frigo"]),why:"Colazione salata: le uova sode si preparano la domenica e durano 7 giorni col guscio."},
- {id:"c_kefir",type:"colazione",name:"Kefir con avena, noci e frutta",kcal:300,protein:12,fruit:true,ferm:true,
+ {id:"c_kefir",type:"colazione",name:"Kefir con avena, noci e frutta",kcal:300,protein:12,carb:28,fruit:true,ferm:true,
   ing:I(["200 ml|kefir|Frigo","30 g|fiocchi d'avena|Dispensa","10 g|noci|Dispensa"]),why:"Il kefir contiene più specie di microrganismi dello yogurt."},
- {id:"c_crema",type:"colazione",name:"Pane integrale con crema di nocciole fatta in casa e yogurt greco",kcal:318,protein:20,fruit:false,ferm:true,needs:"d_crema_nocciole",
+ {id:"c_crema",type:"colazione",name:"Pane integrale con crema di nocciole fatta in casa e yogurt greco",kcal:318,protein:20,carb:35,fruit:false,ferm:true,needs:"d_crema_nocciole",
   ing:I(["60 g|pane integrale|Panetteria","125 g|yogurt greco 0%|Frigo"]),why:"Il dolce della mattina, senza zucchero aggiunto."},
- {id:"s_yogurt",type:"spuntino",name:"Yogurt greco e frutta",kcal:100,protein:17,fruit:true,ferm:true,
+ /* lc: proposte in automatico solo a chi limita i carboidrati, o quando le altre colazioni non vanno bene per il profilo */
+ {id:"c_yogurt_semi",type:"colazione",lc:true,name:"Yogurt greco con noci, semi di chia e cannella",kcal:265,protein:21,carb:9,fruit:false,ferm:true,
+  ing:I(["170 g|yogurt greco 0%|Frigo","20 g|noci|Dispensa","10 g|semi di chia|Dispensa"]),why:"Senza avena né frutta: pochi carboidrati, e la chia la sera prima nello yogurt diventa cremosa."},
+ {id:"c_uova_avocado",type:"colazione",lc:true,name:"2 uova sode con avocado e pomodorini",kcal:290,protein:14,carb:5,fruit:false,eggs:2,
+  ing:I(["2|uova|Frigo","½|avocado|Ortofrutta","100 g|pomodorini|Ortofrutta"]),why:"Colazione salata con pochi carboidrati: grassi e proteine saziano a lungo."},
+ {id:"c_tofu",type:"colazione",lc:true,name:"Tofu strapazzato con spinaci e curcuma",kcal:240,protein:21,carb:4,fruit:false,
+  ing:I(["150 g|tofu naturale|Frigo","100 g|spinaci surgelati|Surgelati"]),why:"La colazione proteica di chi non mangia uova né yogurt: sbriciola il tofu in padella con spinaci, curcuma e un pizzico di pepe, 5 minuti. Si prepara anche la domenica per tre giorni."},
+ {id:"s_yogurt",type:"spuntino",name:"Yogurt greco e frutta",kcal:100,protein:17,carb:7,fruit:true,ferm:true,
   ing:I(["170 g|yogurt greco 0%|Frigo"]),why:"Il modo più semplice per aggiungere 17 g di proteine e un fermentato."},
- {id:"s_yogurt_magro",type:"spuntino",name:"Yogurt magro bianco, semi di chia e frutta",kcal:115,protein:9,fruit:true,ferm:true,
+ {id:"s_yogurt_magro",type:"spuntino",name:"Yogurt magro bianco, semi di chia e frutta",kcal:115,protein:9,carb:8,fruit:true,ferm:true,
   ing:I(["150 g|yogurt magro bianco|Frigo","10 g|semi di chia|Dispensa"]),why:"Lo yogurt magro ha meno della metà delle proteine del greco: i semi di chia aggiungono fibre e omega-3 vegetali."},
- {id:"s_yogurt_soia",type:"spuntino",name:"Yogurt di soia, semi di zucca e frutta",kcal:120,protein:8,fruit:true,ferm:true,
+ {id:"s_yogurt_soia",type:"spuntino",name:"Yogurt di soia, semi di zucca e frutta",kcal:120,protein:8,carb:4,fruit:true,ferm:true,
   ing:I(["125 g|yogurt di soia|Frigo","10 g|semi di zucca|Dispensa"]),why:"Scegli quello con fermenti vivi e senza zuccheri aggiunti."},
- {id:"s_kefir",type:"spuntino",name:"Kefir e frutta",kcal:125,protein:7,fruit:true,ferm:true,
+ {id:"s_kefir",type:"spuntino",name:"Kefir e frutta",kcal:125,protein:7,carb:8,fruit:true,ferm:true,
   ing:I(["200 ml|kefir|Frigo"]),why:"Fermentato e dissetante."},
- {id:"s_noci",type:"spuntino",name:"Frutta e noci",kcal:100,protein:2,fruit:true,
+ {id:"s_noci",type:"spuntino",name:"Frutta e noci",kcal:100,protein:2,carb:1,fruit:true,
   ing:I(["15 g|noci|Dispensa"]),why:"Grassi e fibre rallentano lo zucchero della frutta; le noci portano omega-3 vegetali."},
- {id:"s_mandorle",type:"spuntino",name:"Frutta e mandorle",kcal:120,protein:4,fruit:true,
+ {id:"s_mandorle",type:"spuntino",name:"Frutta e mandorle",kcal:120,protein:4,carb:1,fruit:true,
   ing:I(["20 g|mandorle|Dispensa"]),why:"Le mandorle sono tra la frutta secca più ricca di calcio."},
- {id:"s_grana",type:"spuntino",name:"Frutta e grana",kcal:98,protein:8,fruit:true,
+ {id:"s_grana",type:"spuntino",name:"Frutta e grana",kcal:98,protein:8,carb:0,fruit:true,
   ing:I(["25 g|parmigiano grattugiato|Frigo"]),why:"Proteine e calcio; il sapore salato bilancia il dolce della frutta."},
- {id:"s_arachidi",type:"spuntino",name:"Frutta e burro di arachidi",kcal:90,protein:4,fruit:true,
+ {id:"s_arachidi",type:"spuntino",name:"Frutta e burro di arachidi",kcal:90,protein:4,carb:2,fruit:true,
   ing:I(["15 g|burro di arachidi|Dispensa"]),why:"Scegli quello 100% arachidi, senza zucchero né oli aggiunti."},
- {id:"s_uovo",type:"spuntino",name:"Uovo sodo e frutta",kcal:75,protein:7,fruit:true,eggs:1,
+ {id:"s_uovo",type:"spuntino",name:"Uovo sodo e frutta",kcal:75,protein:7,carb:0,fruit:true,eggs:1,
   ing:I(["1|uova|Frigo"]),why:"Si prepara la domenica con le altre uova sode: 7 giorni in frigo col guscio."},
- {id:"s_edamame",type:"spuntino",name:"Edamame con un pizzico di sale",kcal:120,protein:11,fruit:false,
+ {id:"s_edamame",type:"spuntino",name:"Edamame con un pizzico di sale",kcal:120,protein:11,carb:4,fruit:false,
   ing:I(["100 g|edamame surgelati|Surgelati"]),why:"Spuntino salato con tante proteine: si scongelano in 3 minuti in acqua bollente."},
- {id:"s_hummus",type:"spuntino",name:"Hummus con carote e finocchi crudi",kcal:200,protein:6,fruit:false,
+ {id:"s_hummus",type:"spuntino",name:"Hummus con carote e finocchi crudi",kcal:200,protein:6,carb:14,fruit:false,
   ing:I(["60 g|hummus|Frigo","1|carote|Ortofrutta","½|finocchi|Ortofrutta"]),why:"Due verdure crude in più nel conto della settimana."},
- {id:"s_ricotta",type:"spuntino",name:"Ricotta, cannella e frutta",kcal:140,protein:9,fruit:true,
+ {id:"s_ricotta",type:"spuntino",name:"Ricotta, cannella e frutta",kcal:140,protein:9,carb:4,fruit:true,
   ing:I(["100 g|ricotta|Frigo"]),why:"Con fichi o pere diventa un dessert."},
- {id:"s_barretta",type:"spuntino",name:"Barretta di avena e datteri fatta in casa",kcal:190,protein:6,fruit:false,needs:"d_barrette",
+ {id:"s_barretta",type:"spuntino",name:"Barretta di avena e datteri fatta in casa",kcal:190,protein:6,carb:18,fruit:false,needs:"d_barrette",
   ing:[],why:"Dalla scorta di dolci."}
 ];
 
 /* ============ OBIETTIVI ============ */
-const KCAL_TARGET=1800, PROT_MIN=80, PROT_MAX=100, MEAL_PROT_MIN=55, PLANTS_TARGET=30;
+/* Valori di partenza: il profilo li sostituisce (profile.js, applyProfile) */
+let KCAL_TARGET=1800, PROT_MIN=80, PROT_MAX=100, MEAL_PROT_MIN=55, CARB_MAX=0;
+const PLANTS_TARGET=30;
 
 /* ============ PIANTE (per il conto dell'American Gut Project) ============
  Ingrediente -> specie vegetale. Frumento conta una volta sola qualunque sia la forma. */
@@ -541,10 +674,12 @@ const PLANT={
  "lattuga":"lattuga","radicchio":"radicchio","cavolo cappuccio":"cavolo cappuccio","cavolo cinese":"cavolo cinese","cavolo nero":"cavolo nero","cavolfiore":"cavolfiore","broccoli":"broccoli",
  "zenzero fresco":"zenzero","limone":"limone","prezzemolo":"prezzemolo","basilico":"basilico","menta":"menta","aneto":"aneto","rucola":"rucola"
 };
-Object.assign(PLANT,{"rosmarino":"rosmarino","curcuma":"curcuma","cumino":"cumino","semi di cumino":"cumino","paprika dolce":"paprika","origano":"origano","foglie di alloro":"alloro","aglio":"aglio"});
-const HERBS=new Set(["prezzemolo","basilico","menta","aneto","zenzero","capperi","cacao","rosmarino","curcuma","cumino","paprika","origano","alloro"]);
+Object.assign(PLANT,{"rosmarino":"rosmarino","curcuma":"curcuma","cumino":"cumino","semi di cumino":"cumino","paprika dolce":"paprika","origano":"origano","foglie di alloro":"alloro","aglio":"aglio",
+ "funghi champignon":"funghi","pomodorini":"pomodoro","avocado":"avocado","curry dolce":"curry","peperoncino in polvere":"peperoncino","senape":"senape"});
+const HERBS=new Set(["prezzemolo","basilico","menta","aneto","zenzero","capperi","cacao","rosmarino","curcuma","cumino","paprika","origano","alloro","curry","peperoncino","senape"]);
 
 /* Fonte proteica principale di ogni piatto: due principali della stessa settimana non ne condividono nessuna */
-const MAIN_SRC={frit_stagione:["uova"],merluzzo:["merluzzo"],merluzzo_piselli:["merluzzo"],polp_merluzzo:["merluzzo"],polp_tonno:["tonno","ceci"],polp_sgombro:["sgombro","ceci"],sugo_sgombro:["sgombro"],sardine:["sardine"],dahl:["lenticchie"],stufato:["fagioli","lenticchie"],lenticchie:["lenticchie"],cannellini_tonno:["fagioli","tonno"],frit_zucchine:["uova"],frit_broccoli:["uova"],frit_asparagi:["uova"],torta_spinaci:["tofu"],tofu:["tofu"],tempeh:["tempeh"],seitan:["seitan"],peperoni_ripieni:["tonno"],parmigiana:["mozzarella"],zuppa_ceci:["ceci"],vellutata_zucca:["lenticchie"],ragu_soia:["soia granulare"],polp_soia:["soia granulare"],pasta_lenticchie:["lenticchie"],pasta_piselli:["piselli"]};
-const SRC_KEYS=[["sgombro","sgombro"],["tonno","tonno"],["merluzzo","merluzzo"],["nasello","merluzzo"],["sardin","sardine"],["alici","alici"],["acciugh","alici"],["salmon","salmone"],["gamber","gamberi"],["lenticch","lenticchie"],["ceci","ceci"],["fagiol","fagioli"],["cannellini","fagioli"],["borlotti","fagioli"],["pisell","piselli"],["fave","fave"],["tofu","tofu"],["tempeh","tempeh"],["soia granulare","soia granulare"],["edamame","edamame"],["seitan","seitan"],["mozzarella","mozzarella"],["ricotta","ricotta"],["feta","feta"]];
-const SRC_FAM={merluzzo:"pesce",tonno:"pesce",sgombro:"pesce",sardine:"pesce",alici:"pesce",salmone:"pesce",gamberi:"pesce",lenticchie:"legumi",ceci:"legumi",fagioli:"legumi",piselli:"legumi",fave:"legumi",uova:"uova",tofu:"soia",tempeh:"soia","soia granulare":"soia",edamame:"soia",seitan:"seitan",mozzarella:"latticini",ricotta:"latticini",feta:"latticini"};
+const MAIN_SRC={frit_stagione:["uova"],merluzzo:["merluzzo"],merluzzo_cartoccio:["merluzzo"],merluzzo_piselli:["merluzzo"],polp_merluzzo:["merluzzo"],polp_tonno:["tonno","ceci"],polp_sgombro:["sgombro","ceci"],sugo_sgombro:["sgombro"],sardine:["sardine"],dahl:["lenticchie"],stufato:["fagioli","lenticchie"],lenticchie:["lenticchie"],cannellini_tonno:["fagioli","tonno"],frit_zucchine:["uova"],frit_broccoli:["uova"],frit_asparagi:["uova"],torta_spinaci:["tofu"],tofu:["tofu"],tempeh:["tempeh"],seitan:["seitan"],peperoni_ripieni:["tonno"],parmigiana:["mozzarella"],zuppa_ceci:["ceci"],vellutata_zucca:["lenticchie"],ragu_soia:["soia granulare"],polp_soia:["soia granulare"],pasta_lenticchie:["lenticchie"],pasta_piselli:["piselli"],
+ edamame_main:["edamame"],pollo_limone:["pollo"],polp_tacchino:["tacchino"],ragu_manzo:["manzo"],straccetti_pollo:["pollo"],maiale_mele:["maiale"],chili:["manzo","fagioli"],pollo_curry:["pollo","ceci"],insalata_pollo:["pollo"]};
+const SRC_KEYS=[["sgombro","sgombro"],["tonno","tonno"],["merluzzo","merluzzo"],["nasello","merluzzo"],["sardin","sardine"],["alici","alici"],["acciugh","alici"],["salmon","salmone"],["gamber","gamberi"],["lenticch","lenticchie"],["ceci","ceci"],["fagiol","fagioli"],["cannellini","fagioli"],["borlotti","fagioli"],["pisell","piselli"],["fave","fave"],["tofu","tofu"],["tempeh","tempeh"],["soia granulare","soia granulare"],["edamame","edamame"],["seitan","seitan"],["mozzarella","mozzarella"],["ricotta","ricotta"],["feta","feta"],["pollo","pollo"],["tacchino","tacchino"],["manzo","manzo"],["vitello","manzo"],["maiale","maiale"],["lonza","maiale"],["salmone","salmone"]];
+const SRC_FAM={merluzzo:"pesce",tonno:"pesce",sgombro:"pesce",sardine:"pesce",alici:"pesce",salmone:"pesce",gamberi:"pesce",lenticchie:"legumi",ceci:"legumi",fagioli:"legumi",piselli:"legumi",fave:"legumi",uova:"uova",tofu:"soia",tempeh:"soia","soia granulare":"soia",edamame:"soia",seitan:"seitan",mozzarella:"latticini",ricotta:"latticini",feta:"latticini",pollo:"carne bianca",tacchino:"carne bianca",manzo:"carne rossa",maiale:"carne rossa"};

@@ -153,6 +153,18 @@ const PRICES={
  "soia granulare":{size:500,unit:"g",min:2.50,max:4.50},
  "pasta di lenticchie rosse":{size:250,unit:"g",min:1.60,max:2.80},
  "pasta di piselli":{size:250,unit:"g",min:1.80,max:2.90},
- "pasta agli spinaci, broccoli e basilico":{size:250,unit:"g",min:1.50,max:2.60}
+ "pasta agli spinaci, broccoli e basilico":{size:250,unit:"g",min:1.50,max:2.60},
+ // Carne (stime, per i profili onnivori)
+ "sovracosce di pollo senza pelle":{size:1000,unit:"g",min:7.50,max:11.00,bulk:true},
+ "petto di pollo":{size:1000,unit:"g",min:9.50,max:14.00,bulk:true},
+ "macinato di tacchino":{size:500,unit:"g",min:4.50,max:6.50},
+ "macinato di manzo magro":{size:500,unit:"g",min:5.50,max:8.50},
+ "filetto di maiale":{size:1000,unit:"g",min:11.00,max:16.00,bulk:true},
+ "bresaola":{size:80,unit:"g",min:2.90,max:4.50},
+ // Per altri profili
+ "senape":{size:200,unit:"g",min:1.20,max:2.50},
+ "avocado":{size:1,unit:"pz",min:0.90,max:1.60,bulk:true},
+ "pomodorini":{size:500,unit:"g",min:1.50,max:3.00}
 };
 const PRICE_SOURCE="Stime da prezzi online Coop (Unicoop Firenze) e dal tuo scontrino Coop del 27 settembre 2026. Tocca un prezzo per correggerlo.";
+const PRICE_SOURCE_GENERIC="Stime da prezzi online Coop (Unicoop Firenze), settembre 2026. Tocca un prezzo per correggerlo con quello del tuo supermercato: l'app se lo ricorda.";

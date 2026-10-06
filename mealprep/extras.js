@@ -15,6 +15,10 @@ const THINK=[
 ];
 function cssv(n){return getComputedStyle(document.documentElement).getPropertyValue(n).trim()}
 function renderGuide(){
+  const P=S.profile,gp=document.getElementById("guideProt"),gm=document.getElementById("guideMilk");
+  if(P&&gp){const nm=showNums(),pin=/^(8|11)/.test(String(PROT_MIN))?"gli":"i";
+    gp.innerHTML=`La giornata ha ${P.meals==="pc"?"pranzo e cena":P.meals==="p"?"il pranzo":"la cena"} (piatto principale${P.carbs==="keto"?"":", base di cereale"}, contorno, eventuale sugo dalle scorte)${P.snacks!==false?", una colazione e uno spuntino":""}. ${nm?`L'obiettivo è ${KCAL_TARGET} kcal e ${PROT_MIN}–${PROT_MAX} g di proteine al giorno${CARB_MAX?`, con al massimo ${CARB_MAX} g di carboidrati`:""}.`:"I numeri restano nascosti, ma l'app li usa per bilanciare le giornate."} Le porzioni di partenza sono pensate per circa 1800 kcal (55 g di cereale a crudo a pasto); per te il piatto principale vale ×${String(PF.fm).replace(".",",")}${PF.fb?` e il cereale ×${String(PF.fb).replace(".",",")}`:" e il cereale non c'è"}: si scalano separatamente, come blocchi, così si regolano insieme calorie e proteine. I valori sono stime da tabelle di composizione degli alimenti, con un margine di circa ±10%, e includono l'olio di cottura. L'olio a crudo aggiunto a tavola invece no: ogni cucchiaino vale circa 45 kcal.${CARB_MAX?" I carboidrati sono quelli «disponibili» delle tabelle CREA: la fibra non è contata.":""} Se un giorno resta sotto ${nm?`${pin} ${PROT_MIN} g`:"il tuo obiettivo di proteine"}, l'app aggiunge al pasto più povero un'aggiunta proteica adatta al tuo profilo.`}
+  if(P&&gm)gm.hidden=pfDiet(P).no.includes("latte")||(P.allergies||[]).includes("latte");
   document.getElementById("think").innerHTML=THINK.map(t=>`<details class="q"><summary>${t.q}</summary><p class="hint">Spunto: ${t.hint}</p><div class="ans">${t.a.map(x=>x.startsWith("<A>")?`<p class="analogy">${x.slice(3)}</p>`:`<p>${x}</p>`).join("")}</div></details>`).join("");
   const s=document.getElementById("coolChart");
   const ink=cssv("--ink"),ink3=cssv("--ink-3"),line=cssv("--line"),dang=cssv("--danger"),ds=cssv("--danger-soft"),fr=cssv("--fridge"),acc=cssv("--accent");
@@ -81,6 +85,8 @@ let rsz;window.addEventListener("resize",()=>{clearTimeout(rsz);rsz=setTimeout((
 
 
 /* ============ AVVIO ============ */
+/* chi apre Schiscia per la prima volta fa il questionario; gli altri trovano la loro settimana */
+if(!S.profile){startOnboarding()}else{
 autoWeek();
 /* una tantum: dahl dalle scorte lunedì a pranzo e martedì a cena (settimana 5–9 ottobre 2026) */
 (function seedDahl1005(){try{if(S.seeded.dahl1005||S.weekStart!=="2026-10-05"||!S.week||!R("dahl")||iso(new Date())>"2026-10-09")return;
@@ -90,5 +96,5 @@ autoWeek();
   if(g.week&&g.week.some(d=>d.p.m||d.c.m)){S.week=g.week;S.have=[]}
   S.seeded.dahl1005=true;save()}catch(err){console.error(err)}})();
 
-show("settimana");
+show("settimana");}
 if("serviceWorker" in navigator){window.addEventListener("load",()=>navigator.serviceWorker.register("sw.js").catch(()=>{}))}

@@ -1,7 +1,7 @@
 // Salva l'app sul telefono per usarla offline. Cambia VERSION a ogni aggiornamento.
 // Cancella solo le proprie cache: sullo stesso sito vivono anche la pagina iniziale e /lavatrice/ (Oblò).
-const VERSION = "schiscia-v1";
-const CORE = ["./", "./index.html", "./style.css", "./data.js", "./prices.js", "./app.js", "./extras.js", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
+const VERSION = "schiscia-v2";
+const CORE = ["./", "./index.html", "./style.css", "./data.js", "./prices.js", "./profile.js", "./app.js", "./extras.js", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(CORE)).then(() => self.skipWaiting()));

@@ -8,17 +8,25 @@ Sito con le app di casa, pubblicato da Netlify su housekeepinglikeapro.netlify.a
 
 ## Schiscia (cartella `mealprep/`)
 
-App personale di meal prep (PWA).
+App di meal prep (PWA), personalizzabile: chi la apre per la prima volta fa un questionario e l'app si adatta a lui. Si condivide mandando il link: ogni persona ha il suo profilo e i suoi dati, salvati solo sul suo telefono.
 
-- `mealprep/index.html` · struttura delle schermate
+- `mealprep/index.html` · struttura delle schermate (compresi il questionario e il profilo)
 - `style.css` · stile (Libre Baskerville per i titoli, Lato per il testo)
-- `data.js` · ricettario (pasti, cereali, sughi, fermentati, dolci), frutta di stagione, colazioni e spuntini, obiettivi nutrizionali, mappa delle piante
+- `data.js` · ricettario (pasti, cereali, sughi, fermentati, dolci) con le etichette per la personalizzazione (`META`: carboidrati, difficoltà, buona fredda, termos, friggitrice ad aria, utensili che cambiano i tempi), frutta di stagione, colazioni e spuntini, mappa delle piante
 - `prices.js` · prezzi Coop stimati
+- `profile.js` · il profilo: diete, allergie, gusti, quantità, utensili, abilità e tempo; quali ricette vanno bene (`whyNot`), quanto grandi fare le porzioni (`portionFactors`), tempi con gli utensili (`effTimes`), diagnosi quando le ricette sono poche, sblocchi con gli utensili nuovi, questionario e schermata Profilo
 - `app.js` · generatore settimanale, spesa, piano, ricette, Casa (inventario di dispensa/frigo/freezer con scadenze e priorità, sughi da freezer, fermentati), dolci
-- `extras.js` · guida frigo e illustrazioni
+- `extras.js` · guida frigo, illustrazioni e avvio (questionario per chi è nuovo)
 - `mealprep/sw.js` · funzionamento offline (cambiare VERSION a ogni aggiornamento; cache `schiscia-*`)
 
-Obiettivi di default: 1800 kcal e 80–100 g di proteine al giorno, 30 piante a settimana, un fermentato al giorno, due cereali di famiglie diverse, pesce azzurro almeno una volta.
+Come funziona la personalizzazione:
+
+- **Filtri per ricetta**: dieta (onnivora, pescetariana, vegetariana, vegana), allergie e intolleranze, cibi esclusi, piccante, utensili indispensabili (forno o friggitrice, fornelli, bilancia per i fermentati), livello in cucina. Le categorie si riconoscono dal nome degli ingredienti, quindi valgono anche per le ricette nuove.
+- **Vincoli per giornata**: calorie, proteine e, per low carb e chetogenica, carboidrati.
+- **Porzioni a blocchi**: piatto principale e cereale si scalano separatamente per arrivare insieme a calorie e proteine del profilo; spesa e ricette mostrano le quantità già adattate.
+- **Lucchetto**: un pasto già cucinato resta fisso quando si rigenera o si cambia il profilo. Cambiando il profilo, i pasti che non vanno più bene vengono segnalati e si rifanno con un tocco.
+
+Chi usava l'app prima dei profili riceve un profilo uguale alle regole di allora: pescetariana, 1800 kcal e 80–100 g di proteine al giorno, niente piccante, 30 piante a settimana, un fermentato al giorno, pesce azzurro almeno una volta. La versione di prima è salvata nel branch `versione-originale`.
 
 ## Oblò (cartella `lavatrice/`)
 
