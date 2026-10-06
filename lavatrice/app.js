@@ -22,6 +22,23 @@ function loadState() {
   return clone(DEF);
 }
 let S = loadState();
+// Trasloco: i dati arrivano dal vecchio indirizzo (…/lavatrice/) nel frammento #trasloco=…
+let MOVED = false;
+(function importMoved() {
+  const m = location.hash.match(/^#trasloco=([A-Za-z0-9_-]+)$/);
+  if (!m) return;
+  try {
+    const b64 = m[1].replace(/-/g, "+").replace(/_/g, "/");
+    const json = decodeURIComponent(escape(atob(b64 + "===".slice((b64.length + 3) % 4))));
+    const o = JSON.parse(json);
+    const empty = !S.items.length && !Object.keys(S.pantry).length && !Object.keys(S.seen).length;
+    if (empty && o && typeof o === "object") {
+      S = { ...clone(DEF), ...o, settings: { ...DEF.settings, ...(o.settings || {}) }, stats: { ...DEF.stats, ...(o.stats || {}) } };
+      MOVED = true;
+    }
+  } catch (e) { /* dati non leggibili: si riparte da zero */ }
+  history.replaceState(null, "", location.pathname + location.search);
+})();
 function save() {
   try { localStorage.setItem(KEY, JSON.stringify(S, (k, v) => (k === "_b" || k === "_r") ? undefined : v)); } catch (e) { /* ignora */ }
 }
@@ -898,5 +915,6 @@ document.addEventListener("keydown", e => { if (e.key === "Escape" && !$("#sheet
 
 // ───────────────────────────── AVVIO ─────────────────────────────
 go("cesto");
+if (MOVED) { save(); toast("Trasloco completato: cesto, dispensa e box scoperti sono qui."); }
 if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js", { scope: "./" }).catch(() => {}));
 })();
