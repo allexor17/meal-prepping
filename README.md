@@ -4,7 +4,7 @@ Sito con le app di casa, pubblicato da Netlify su housekeepinglikeapro.netlify.a
 
 - `/` · pagina iniziale con i collegamenti alle app (`index.html`); `sw.js` alla radice serve solo a disattivare il vecchio service worker del meal prep, che prima viveva qui
 - `/mealprep/` · **Schiscia**, l'app di meal prep (cartella `mealprep/`)
-- `/lavatrice/` · **Oblò**, l'app per il bucato (sottomodulo dal repository allexor17/Oblo)
+- `/lavatrice/` · **Oblò**, l'app per il bucato: vive nel repository allexor17/Oblo e Netlify la scarica a ogni pubblicazione
 
 ## Schiscia (cartella `mealprep/`)
 
@@ -30,6 +30,6 @@ Chi usava l'app prima dei profili riceve un profilo uguale alle regole di allora
 
 ## Oblò (cartella `lavatrice/`)
 
-Oblò vive nel suo repository, [allexor17/Oblo](https://github.com/allexor17/Oblo), ed è collegata qui come sottomodulo git nella cartella `lavatrice/`. Così ognuna ha il proprio repository, ma Netlify pubblica tutto su un solo sito: Schiscia su `/mealprep/`, Oblò su `/lavatrice/`.
+Oblò vive nel suo repository, [allexor17/Oblo](https://github.com/allexor17/Oblo). Qui non c'è il suo codice: a ogni pubblicazione Netlify esegue `build-oblo.sh` (configurato in `netlify.toml`), che scarica Oblò nella cartella `lavatrice/` alla versione scritta in `oblo.ref`. Così ognuna ha il proprio repository e il sito le pubblica insieme: Schiscia su `/mealprep/`, Oblò su `/lavatrice/`.
 
-Per aggiornare Oblò: si modifica e si pubblica il repository Oblo, poi qui si aggiorna il puntatore del sottomodulo (`git submodule update --remote lavatrice`, commit e push). Netlify scarica i sottomoduli da solo a ogni pubblicazione.
+Per pubblicare una nuova versione di Oblò: si fa il push sul repository Oblo, poi qui si scrive il nuovo commit in `oblo.ref` e si fa il push. Per provare in locale: `sh build-oblo.sh`.
