@@ -1,10 +1,12 @@
 # Housekeeping like a pro
 
-Sito con le app di casa, pubblicato da Netlify su housekeepinglikeapro.netlify.app. File statici, nessuna build.
+Sito con le app di casa, pubblicato con GitHub Pages su https://allexor17.github.io/meal-prepping/. File statici, nessuna build (`.nojekyll` disattiva Jekyll).
 
-- `/` · pagina iniziale con i collegamenti alle app (`index.html`); `sw.js` alla radice serve solo a disattivare il vecchio service worker del meal prep, che prima viveva qui
+- `/` · pagina iniziale con i collegamenti alle app (`index.html`)
 - `/mealprep/` · **Schiscia**, l'app di meal prep (cartella `mealprep/`)
-- `/lavatrice/` · **Oblò**, l'app per il bucato: vive nel repository allexor17/Oblo e Netlify la scarica a ogni pubblicazione
+- `/lavatrice/` · **Oblò**, l'app per il bucato (sottomodulo dal repository allexor17/Oblo)
+
+I dati delle app restano nel browser del telefono (localStorage), legati all'indirizzo allexor17.github.io: rinominare il repository cambia il percorso ma non cancella i dati.
 
 ## Schiscia (cartella `mealprep/`)
 
@@ -30,6 +32,6 @@ Chi usava l'app prima dei profili riceve un profilo uguale alle regole di allora
 
 ## Oblò (cartella `lavatrice/`)
 
-Oblò vive nel suo repository, [allexor17/Oblo](https://github.com/allexor17/Oblo). Qui non c'è il suo codice: a ogni pubblicazione Netlify esegue `build-oblo.sh` (configurato in `netlify.toml`), che scarica Oblò nella cartella `lavatrice/` alla versione scritta in `oblo.ref`. Così ognuna ha il proprio repository e il sito le pubblica insieme: Schiscia su `/mealprep/`, Oblò su `/lavatrice/`.
+Oblò vive nel suo repository, [allexor17/Oblo](https://github.com/allexor17/Oblo), ed è collegata qui come sottomodulo git nella cartella `lavatrice/`. GitHub Pages scarica da solo i sottomoduli pubblici a ogni pubblicazione.
 
-Per pubblicare una nuova versione di Oblò: si fa il push sul repository Oblo, poi qui si scrive il nuovo commit in `oblo.ref` e si fa il push. Per provare in locale: `sh build-oblo.sh`.
+Per pubblicare una nuova versione di Oblò: push sul repository Oblo, poi qui `git submodule update --remote lavatrice`, commit e push.

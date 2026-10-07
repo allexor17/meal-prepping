@@ -49,9 +49,5 @@
   </div>
   <p class="hint">Per avere un'app sulla schermata Home, aprila e in Safari tocca Condividi → Aggiungi alla schermata Home.</p>
 </main>
-<script>
-  // La vecchia app del meal prep stava qui alla radice: il suo service worker viene sostituito da sw.js, che si disattiva da solo.
-  if ("serviceWorker" in navigator) navigator.serviceWorker.getRegistration("/").then(r => { if (r && r.scope === location.origin + "/") r.update().catch(() => {}); }).catch(() => {});
-</script>
 </body>
 </html>
